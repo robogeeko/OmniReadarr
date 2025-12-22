@@ -6,7 +6,7 @@ Universal media management application built with Django, Dramatiq, and PostgreS
 
 - **Python 3.12+**
 - **UV** - Package manager
-- **Django 5.x** - Web framework
+- **Django 6.x** - Web framework
 - **Dramatiq** - Task queue with RabbitMQ
 - **PostgreSQL** - Database
 - **Docker** - Containerization
@@ -21,15 +21,9 @@ Universal media management application built with Django, Dramatiq, and PostgreS
 
 ### Quick Start
 
-1. Clone the repository:
+1. Start services with Docker:
    ```bash
-   git clone https://github.com/yourusername/OmniReadarr.git
-   cd OmniReadarr
-   ```
-
-2. Start services with Docker:
-   ```bash
-   docker-compose up --build
+   make run
    ```
 
 3. Access the application:
@@ -69,22 +63,36 @@ Universal media management application built with Django, Dramatiq, and PostgreS
    uv run python manage.py rundramatiq
    ```
 
+## Makefile Commands
+
+The project includes a Makefile with convenient commands:
+
+- `make test` - Run unit tests
+- `make lint` - Run linter
+- `make run` - Start Docker containers and show logs
+- `make help` - Show all available commands
+
 ## Testing
 
 ```bash
-uv run pytest
+make test
 ```
 
 ## Type Checking
 
 ```bash
-uv run pyright
+uv run ty check
 ```
 
 ## Code Formatting
 
+Linting (checking):
 ```bash
-uv run ruff check .
+make lint
+```
+
+Formatting (auto-fix):
+```bash
 uv run ruff format .
 ```
 
