@@ -25,3 +25,7 @@ make test
 ```
 
 5. Write a human readable doc for what the code does and what the tests check for review. 
+
+## Rules
+
+1. Do not add comments to code

@@ -1,6 +1,6 @@
 .PHONY: help test lint run makemigrations migrate
 
-help:  ## Show this help message
+help:
 	@echo "Available commands:"
 	@echo "  make test           - Run unit tests"
 	@echo "  make lint           - Run linter"
@@ -8,17 +8,17 @@ help:  ## Show this help message
 	@echo "  make makemigrations - Create database migrations"
 	@echo "  make migrate        - Apply database migrations"
 
-test:  ## Run unit tests
+test:
 	uv run pytest
 
-lint:  ## Run linter
+lint:
 	uv run ruff check .
 
-run:  ## Start Docker containers and show logs
+run:
 	docker compose up --build
 
-makemigrations:  ## Create database migrations
+makemigrations:
 	uv run python manage.py makemigrations
 
-migrate:  ## Apply database migrations
+migrate:
 	uv run python manage.py migrate
