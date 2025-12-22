@@ -1,0 +1,23 @@
+# OmniReadarr - Universal Media Management System
+
+## Workflow Guidelines
+
+When working on this project, follow these principles.
+
+1. Break down the task into as small as tasks as possible. 
+2. Work on each encapsulated task one at a time. 
+3. Write the code for the task, then make sure lint and tests pass.
+
+```
+make lint
+make test
+```
+
+4. Then, write unit tests for the task. Make sure lint and tests pass.
+
+```
+make lint
+make test
+```
+
+5. Write a human readable doc for what the code does and what the tests check for review. 

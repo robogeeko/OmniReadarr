@@ -1,0 +1,465 @@
+---
+alwaysApply: true
+---
+
+# OmniReadarr - Universal Media Management System
+
+## Project Overview
+
+OmniReadarr is a unified media management system for books, audiobooks, manga, and comics. It provides automated search, download, verification, post-processing, and library organization capabilities. Think of it as a combination of LazyLibrarian, Mylar, and similar *arr applications, but with a modern architecture and unified interface.
+
+## Core Functionality
+
+### 1. Media Search & Discovery
+- Users can search for books, audiobooks, manga, and comics
+- Integration with metadata providers (Google Books, OpenLibrary, MangaDex, ComicVine, etc.)
+- Display rich metadata including covers, descriptions, authors, publishers, series information
+- Support for series tracking and automatic new release notifications
+
+### 2. Want List Management
+- Users can mark media as "wanted"
+- Wanted items are automatically queued for searching
+- Quality profiles allow users to specify preferred formats and quality levels
+- Priority system for high-priority vs. low-priority wants
+
+### 3. Automated Search via Prowlarr
+- Integration with Prowlarr for unified indexer management
+- Periodic automated searches for wanted media
+- Manual search on-demand
+- RSS feed monitoring for new releases
+- Torrent and Usenet support
+
+### 4. Download Management
+- Monitor download client (qBittorrent, Transmission, SABnzbd, NZBGet)
+- Track download progress
+- Automatic import when downloads complete
+- Failed download handling and blacklisting
+
+### 5. Verification & Quality Control
+- Verify downloaded files are valid (not corrupted)
+- Check file formats match expected types
+- Validate metadata embedded in files
+- Automatic retry logic for failed downloads
+
+### 6. Post-Processing Pipeline
+- Convert files to standardized formats:
+  - Books: EPUB, MOBI, AZW3
+  - Audiobooks: M4B with chapters
+  - Comics: CBZ (standardized)
+  - Manga: CBZ with proper reading order
+- Extract and enhance metadata
+- Generate/download cover art
+- Create series metadata files (series.json)
+- Optimize file sizes where appropriate
+
+### 7. Library Organization
+- Organize media into structured library directories:
+  ```
+  /library/
+    books/
+      Author Name/
+        Series Name/
+          Book Title (Year).epub
+    audiobooks/
+      Author Name/
+        Book Title/
+          Book Title.m4b
+    manga/
+      Series Name/
+        Volume 01/
+          Series Name - V01.cbz
+    comics/
+      Publisher/
+        Series Name/
+          Issue #001.cbz
+  ```
+- Configurable naming templates
+- Automatic folder creation
+- Duplicate detection and handling
+
+### 8. Metadata Management
+- Store comprehensive metadata in PostgreSQL:
+  - Title, author, series, volume/issue numbers
+  - Publication dates, ISBNs, identifiers
+  - Descriptions, genres, tags
+  - Cover art URLs and local paths
+  - File locations and formats
+  - User ratings and read status
+- Metadata synchronization with files
+- Export metadata in compatible formats (Calibre, Komga, etc.)
+
+## Technical Architecture
+
+### Tech Stack
+- **Backend**: Django 5.x with Python 3.12+
+- **Package Manager**: UV
+- **Type Checking**: ty (Astral's type checker)
+- **Task Queue**: Dramatiq with RabbitMQ
+- **Database**: PostgreSQL 16
+- **Containerization**: Docker & Docker Compose
+- **Linting**: Ruff
+
+### Key Components
+
+#### Django Apps Structure
+```
+omnireadarr/
+├── core/              # Shared models, utilities
+├── media/             # Media models (Book, Audiobook, Manga, Comic)
+├── search/            # Search providers and metadata fetching
+├── indexers/          # Prowlarr integration
+├── downloads/         # Download monitoring and management
+├── processing/        # Post-processing pipeline
+├── library/           # Library organization and file management
+└── api/               # REST API endpoints
+```
+
+#### Core Models
+
+**Media (Abstract Base)**
+- title, sort_title
+- author(s), series, series_index
+- publication_date, added_date
+- description, genres, tags
+- identifiers (ISBN, ComicVine ID, etc.)
+- cover_url, cover_path
+- status (wanted, searching, downloading, imported, archived)
+- quality_profile
+
+**Book (extends Media)**
+- isbn, isbn13
+- page_count, language
+- publisher, edition
+
+**Audiobook (extends Media)**
+- narrator(s)
+- duration, bitrate
+- chapters
+
+**Manga (extends Media)**
+- volume_number
+- chapter_range
+- original_language, scanlation_group
+- reading_direction
+
+**Comic (extends Media)**
+- issue_number
+- story_arc
+- publisher, imprint
+- writer(s), artist(s), colorist(s)
+
+**SearchResult**
+- media_item (FK)
+- indexer_name
+- release_title, size
+- seeders, leechers (for torrents)
+- download_url
+- quality_score
+
+**DownloadItem**
+- media_item (FK)
+- search_result (FK)
+- download_client
+- status (queued, downloading, completed, failed)
+- progress, eta
+- output_path
+
+**LibraryFile**
+- media_item (FK)
+- file_path, file_size, file_format
+- checksum (SHA256)
+- metadata_updated
+- last_verified
+
+#### Dramatiq Tasks
+
+**Search Tasks**
+- `search_for_media(media_id)` - Search indexers for specific media
+- `periodic_search_wanted()` - Scheduled task to search all wanted media
+- `monitor_rss_feeds()` - Check RSS feeds for new releases
+
+**Download Tasks**
+- `monitor_downloads()` - Check download client status
+- `import_completed_download(download_id)` - Process completed download
+
+**Processing Tasks**
+- `verify_download(file_path)` - Verify file integrity
+- `convert_media(file_path, target_format)` - Convert file formats
+- `extract_metadata(file_path)` - Extract embedded metadata
+- `fetch_metadata(media_id)` - Fetch metadata from providers
+- `organize_to_library(media_id)` - Move and organize files
+
+**Metadata Tasks**
+- `update_series_metadata(series_name)` - Update all items in a series
+- `sync_with_provider(media_id, provider)` - Sync metadata with external provider
+
+### External Integrations
+
+#### Prowlarr API
+- Search indexers
+- Get indexer capabilities
+- Test indexer connections
+- Configure indexer priorities
+
+#### Download Clients
+- qBittorrent API
+- Transmission RPC
+- SABnzbd API
+- NZBGet API
+
+#### Metadata Providers
+- Google Books API
+- OpenLibrary API
+- MangaDex API
+- ComicVine API
+- Goodreads (scraping)
+- AniList API (for manga)
+
+### Configuration
+
+#### Quality Profiles
+```python
+{
+  "name": "High Quality Ebooks",
+  "media_type": "book",
+  "preferred_formats": ["EPUB", "AZW3", "MOBI"],
+  "min_size_mb": 0.5,
+  "max_size_mb": 100,
+  "upgrade_allowed": True
+}
+```
+
+#### Library Paths
+```python
+LIBRARY_PATHS = {
+    "books": "/library/books",
+    "audiobooks": "/library/audiobooks", 
+    "manga": "/library/manga",
+    "comics": "/library/comics"
+}
+```
+
+#### Naming Templates
+```python
+NAMING_TEMPLATES = {
+    "books": "{author}/{series}/{title} ({year}).{ext}",
+    "audiobooks": "{author}/{title}/{title}.{ext}",
+    "manga": "{series}/Volume {volume:02d}/{series} - V{volume:02d}.{ext}",
+    "comics": "{publisher}/{series}/#{issue:03d}.{ext}"
+}
+```
+
+## Development Workflow
+
+### Running Locally
+```bash
+# Start dependencies only
+docker-compose up postgres rabbitmq
+
+# Run migrations
+uv run python manage.py migrate
+
+# Start Django dev server
+uv run python manage.py runserver
+
+# Start Dramatiq worker (separate terminal)
+uv run python manage.py rundramatiq
+
+# Run type checker
+uv run ty check --watch
+
+# Run tests
+uv run pytest
+```
+
+### Running with Docker
+```bash
+# Start all services
+make run
+
+# Run tests in container
+docker-compose exec web uv run pytest
+
+# Check logs
+docker-compose logs -f worker
+```
+
+### Database Migrations
+```bash
+# Create migrations
+uv run python manage.py makemigrations
+
+# Apply migrations
+uv run python manage.py migrate
+
+# Create empty migration
+uv run python manage.py makemigrations --empty media
+```
+
+## API Design
+
+### REST Endpoints
+
+**Media Endpoints**
+- `GET /api/media/` - List all media (with filters)
+- `GET /api/media/{id}/` - Get media details
+- `POST /api/media/` - Add media to library
+- `PATCH /api/media/{id}/` - Update media
+- `DELETE /api/media/{id}/` - Remove media
+- `POST /api/media/{id}/search/` - Trigger manual search
+- `POST /api/media/{id}/want/` - Mark as wanted
+- `POST /api/media/{id}/unwant/` - Unmark as wanted
+
+**Search Endpoints**
+- `GET /api/search/?q=query&type=book` - Search metadata providers
+- `GET /api/search/results/{media_id}/` - Get search results from indexers
+
+**Library Endpoints**
+- `GET /api/library/stats/` - Get library statistics
+- `POST /api/library/scan/` - Trigger library scan
+- `POST /api/library/refresh/` - Refresh metadata
+
+**Download Endpoints**
+- `GET /api/downloads/` - List active downloads
+- `GET /api/downloads/{id}/` - Get download status
+- `DELETE /api/downloads/{id}/` - Cancel download
+
+**Settings Endpoints**
+- `GET /api/settings/profiles/` - List quality profiles
+- `POST /api/settings/profiles/` - Create quality profile
+- `GET /api/settings/indexers/` - List Prowlarr indexers
+- `POST /api/settings/indexers/test/` - Test indexer connection
+
+## Task Priority System
+
+### Task Priorities
+1. **High**: User-triggered searches, critical failures
+2. **Normal**: Automated searches, metadata updates
+3. **Low**: Background maintenance, optimization
+
+### Task Scheduling
+- Wanted media search: Every 6 hours
+- RSS monitoring: Every 15 minutes  
+- Download monitoring: Every 1 minute
+- Library scan: Daily at 3 AM
+- Metadata refresh: Weekly
+
+## Error Handling & Retry Logic
+
+### Retry Strategies
+- Search failures: Retry 3 times with exponential backoff
+- Download failures: Retry 2 times, then blacklist release
+- Conversion failures: Retry once, then mark for manual review
+- API failures: Retry 5 times with backoff
+
+### Logging
+- Comprehensive logging at all stages
+- User-visible activity log for each media item
+- Admin log viewer for debugging
+- Error alerting for critical failures
+
+## Testing Strategy
+
+### Unit Tests
+- Model validation and business logic
+- Utility functions and helpers
+- Metadata parsing and extraction
+
+### Integration Tests
+- API endpoints with database
+- Dramatiq task execution
+- External API integrations (mocked)
+
+### End-to-End Tests
+- Complete workflows (search → download → process → organize)
+- Error scenarios and recovery
+- Concurrent operations
+
+## Future Enhancements
+
+### Phase 1 (MVP)
+- Basic media management (books only)
+- Prowlarr search integration
+- Simple post-processing
+- Manual download import
+
+### Phase 2
+- Audiobook support
+- Automatic conversion pipeline
+- Quality profiles
+- Download client monitoring
+
+### Phase 3
+- Manga and comic support
+- Advanced metadata management
+- Series tracking
+- Mobile-friendly UI
+
+### Phase 4
+- Reading progress tracking
+- Recommendations engine
+- Social features (reading lists, reviews)
+- Plugin system for custom providers
+
+## Performance Considerations
+
+### Database Optimization
+- Index on frequently queried fields (title, author, status)
+- Pagination for large result sets
+- Database connection pooling
+- Read replicas for heavy read workloads
+
+### Task Queue Optimization
+- Task prioritization
+- Worker pool sizing based on workload
+- Result backend for long-running tasks
+- Dead letter queue for failed tasks
+
+### File Operations
+- Async file I/O where possible
+- Chunked processing for large files
+- Streaming for downloads
+- Efficient metadata extraction
+
+## Security Considerations
+
+- API authentication (JWT tokens)
+- Rate limiting on public endpoints
+- Input validation and sanitization
+- Secure file handling (no directory traversal)
+- Environment variable secrets
+- HTTPS for external API calls
+- Docker secrets for production
+
+## Monitoring & Observability
+
+### Metrics to Track
+- Download success/failure rates
+- Search result quality
+- Task processing times
+- Library growth over time
+- API response times
+- Storage usage
+
+### Health Checks
+- Database connectivity
+- RabbitMQ status
+- Prowlarr reachability
+- Download client status
+- Disk space available
+
+## Contributing Guidelines
+
+1. Follow Django and Python best practices
+2. Type hints required (checked by ty)
+3. Run `make lint` before committing
+4. Write tests for new features
+5. Update documentation
+6. Use conventional commit messages
+
+## Resources
+
+- Django Documentation: https://docs.djangoproject.com/
+- Dramatiq Documentation: https://dramatiq.io/
+- Prowlarr API: https://wiki.servarr.com/prowlarr/api
+- PostgreSQL Best Practices: https://wiki.postgresql.org/wiki/Don%27t_Do_This
