@@ -1,4 +1,5 @@
 from search.providers.base import BaseProvider
+from search.providers.openlibrary import OpenLibraryProvider
 from search.providers.results import (
     BaseNormalizedMetadata,
     BookMetadata,
@@ -7,6 +8,7 @@ from search.providers.results import (
 
 __all__ = [
     "BaseProvider",
+    "OpenLibraryProvider",
     "BaseNormalizedMetadata",
     "BookMetadata",
     "NormalizedMetadata",

@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from search.providers.results import BookMetadata, NormalizedMetadata
+from search.providers.results import NormalizedMetadata
 
 
 class BaseProvider(ABC):
@@ -51,7 +51,7 @@ class BaseProvider(ABC):
         pass
 
     @abstractmethod
-    def normalize_result(self, raw_result: dict[str, Any]) -> NormalizedMetadata:
+    def normalize_result(self, raw_result: dict[str, Any]) -> NormalizedMetadata | None:
         """
         Normalize provider-specific format to standard format.
 
@@ -59,7 +59,7 @@ class BaseProvider(ABC):
             raw_result: Raw result from provider API
 
         Returns:
-            Normalized metadata object with standard fields
+            Normalized metadata object with standard fields, or None if result is invalid
         """
         pass
 

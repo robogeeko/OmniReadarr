@@ -9,6 +9,7 @@ dependencies = [
     "django-environ>=0.12.0",
     "dramatiq[rabbitmq]>=2.0.0",
     "gunicorn>=23.0.0",
+    "httpx>=0.27.0",
     "psycopg[binary]>=3.3.2",
 ]
 
@@ -20,3 +21,10 @@ dev = [
     "ruff>=0.14.10",
     "ty>=0.0.5",
 ]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "omnireadarr.settings"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
