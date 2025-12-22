@@ -17,6 +17,13 @@ make lint
 make test
 ```
 
+If database changes happen and migrations need to occur, run the migration commands:
+
+```
+make makemigrations
+make migrate
+```
+
 4. Then, write unit tests for the task. Make sure lint and tests pass.
 
 ```
