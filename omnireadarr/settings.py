@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-import environ  # type: ignore
+import environ
 
 env = environ.Env(
     DEBUG=(bool, False),
@@ -21,11 +21,13 @@ INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.postgres",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_dramatiq",
     "core",
+    "media",
 ]
 
 MIDDLEWARE = [
@@ -87,6 +89,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "mediafiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
