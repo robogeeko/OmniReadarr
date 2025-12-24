@@ -7,6 +7,7 @@ from django.views.decorators.http import require_http_methods
 
 from core.models import MediaStatus
 from media.models import Audiobook, Book
+from search.models import ProviderType
 from search.providers.results import BookMetadata
 
 
@@ -58,9 +59,25 @@ def get_media_status(request):
                 )
 
     statuses = []
+    valid_providers = [choice[0] for choice in ProviderType.choices]
+
     for item in items:
         provider = item["provider"]
         external_id = item["external_id"]
+
+        if provider not in valid_providers:
+            statuses.append(
+                {
+                    "provider": provider,
+                    "external_id": external_id,
+                    "exists": False,
+                    "media_type": None,
+                    "status": None,
+                    "status_display": None,
+                    "error": f"Invalid provider: {provider}. Must be one of {', '.join(valid_providers)}",
+                }
+            )
+            continue
 
         book_match = Book.objects.filter(
             provider=provider, external_id=external_id
@@ -131,6 +148,16 @@ def add_wanted_media(request):
             {
                 "error": "invalid_media_type",
                 "message": "Media type must be 'book' or 'audiobook'",
+            },
+            status=400,
+        )
+
+    valid_providers = [choice[0] for choice in ProviderType.choices]
+    if provider not in valid_providers:
+        return JsonResponse(
+            {
+                "error": "invalid_provider",
+                "message": f"Provider must be one of: {', '.join(valid_providers)}",
             },
             status=400,
         )

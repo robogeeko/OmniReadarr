@@ -250,6 +250,19 @@ class TestGetMediaStatus:
         data = json.loads(response.content)
         assert "error" in data
 
+    def test_get_status_invalid_provider(self, client: Client):
+        url = reverse("media:get_media_status")
+        response = client.get(
+            url, {"providers": "invalid_provider", "external_ids": "OL123456W"}
+        )
+
+        assert response.status_code == 200
+        data = json.loads(response.content)
+        assert len(data["statuses"]) == 1
+        assert data["statuses"][0]["exists"] is False
+        assert "error" in data["statuses"][0]
+        assert "invalid" in data["statuses"][0]["error"].lower()
+
     def test_get_status_book_takes_precedence_over_audiobook(
         self, client: Client, sample_book: Book
     ):
@@ -475,6 +488,23 @@ class TestAddWantedMedia:
 
         book = Book.objects.get(provider="openlibrary", external_id="OL123456W")
         assert book.title == "Minimal Book"
+
+    def test_add_wanted_invalid_provider(self, client: Client, sample_metadata: dict):
+        url = reverse("media:add_wanted_media")
+        payload = {
+            "provider": "invalid_provider",
+            "external_id": "OL123456W",
+            "media_type": "book",
+            "metadata": sample_metadata,
+        }
+        response = client.post(
+            url, json.dumps(payload), content_type="application/json"
+        )
+
+        assert response.status_code == 400
+        data = json.loads(response.content)
+        assert data["error"] == "invalid_provider"
+        assert "provider" in data["message"].lower()
 
     def test_add_wanted_book_and_audiobook_same_external_id(
         self, client: Client, sample_metadata: dict
