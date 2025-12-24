@@ -20,6 +20,8 @@ class BaseNormalizedMetadata(ABC):
     language: str = ""
     genres: list[str] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
+    series: str = ""
+    series_index: float | None = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization"""
@@ -37,6 +39,8 @@ class BaseNormalizedMetadata(ABC):
             "language": self.language,
             "genres": self.genres,
             "tags": self.tags,
+            "series": self.series,
+            "series_index": self.series_index,
         }
         return result
 
@@ -81,6 +85,13 @@ class BookMetadata(BaseNormalizedMetadata):
             elif isinstance(data["publication_date"], date):
                 publication_date = data["publication_date"]
 
+        series_index = data.get("series_index")
+        if series_index is not None:
+            try:
+                series_index = float(series_index)
+            except (ValueError, TypeError):
+                series_index = None
+
         return cls(
             provider=data.get("provider", ""),
             provider_id=data.get("provider_id", ""),
@@ -93,6 +104,8 @@ class BookMetadata(BaseNormalizedMetadata):
             language=data.get("language", ""),
             genres=data.get("genres", []),
             tags=data.get("tags", []),
+            series=data.get("series", ""),
+            series_index=series_index,
             isbn=data.get("isbn", ""),
             isbn13=data.get("isbn13", ""),
             page_count=data.get("page_count"),

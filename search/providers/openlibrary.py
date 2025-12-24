@@ -49,7 +49,11 @@ class OpenLibraryProvider(BaseProvider):
         else:
             search_query = query
 
-        params = {"q": search_query, "limit": 50}
+        params = {
+            "q": search_query,
+            "limit": 50,
+            "fields": "key,title,author_name,authors,isbn,first_publish_year,publish_date,cover_i,number_of_pages_median,number_of_pages,publisher,language,first_sentence,subject,series,series_index",
+        }
 
         try:
             response = httpx.get(url, params=params, timeout=10.0)
@@ -195,6 +199,16 @@ class OpenLibraryProvider(BaseProvider):
         subjects = raw_result.get("subject", [])
         genres = subjects[:5] if subjects else []
 
+        series_list = raw_result.get("series", [])
+        series = series_list[0] if series_list else ""
+
+        series_index = raw_result.get("series_index")
+        if series_index is not None:
+            try:
+                series_index = float(series_index)
+            except (ValueError, TypeError):
+                series_index = None
+
         return BookMetadata(
             provider="openlibrary",
             provider_id=provider_id,
@@ -209,6 +223,8 @@ class OpenLibraryProvider(BaseProvider):
             cover_url=cover_url,
             language=language,
             genres=genres,
+            series=series,
+            series_index=series_index,
         )
 
     def test_connection(self) -> bool:
