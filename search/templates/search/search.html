@@ -3,6 +3,81 @@
 
 {% block title %}Search{% endblock %}
 
+{% block extra_head %}
+<style>
+.status-loading {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.want-button {
+    background-color: #417690;
+    color: white;
+    border: 1px solid #417690;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.want-button:hover {
+    background-color: #345f75;
+}
+
+.want-button:active {
+    background-color: #2a4d5f;
+}
+
+.want-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid;
+    white-space: nowrap;
+}
+
+.status-badge.wanted {
+    background-color: #e8f4f8;
+    color: #417690;
+    border-color: #417690;
+}
+
+.status-badge.searching {
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffc107;
+}
+
+.status-badge.downloading {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border-color: #17a2b8;
+}
+
+.status-badge.imported {
+    background-color: #d4edda;
+    color: #155724;
+    border-color: #28a745;
+}
+
+.status-badge.archived {
+    background-color: #e2e3e5;
+    color: #383d41;
+    border-color: #6c757d;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <h1>Search</h1>
 
@@ -58,6 +133,11 @@
 </form>
 
 {% if results %}
+    {% for result in results %}
+        {% with script_id=forloop.counter0|stringformat:"s" %}
+            {{ result.metadata|json_script:script_id }}
+        {% endwith %}
+    {% endfor %}
     <fieldset class="module">
         <h2>Search Results ({{ results|length }})</h2>
         <div class="results">
@@ -73,11 +153,16 @@
                         <th scope="col" class="column-isbn13">ISBN-13</th>
                         <th scope="col" class="column-language">Language</th>
                         <th scope="col" class="column-description">Description</th>
+                        <th scope="col" class="column-ebook">Ebook</th>
+                        <th scope="col" class="column-audiobook">Audiobook</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for result in results %}
-                    <tr class="{% cycle 'row1' 'row2' %}">
+                    <tr class="{% cycle 'row1' 'row2' %}" 
+                        data-provider="{{ result.provider }}" 
+                        data-external-id="{{ result.provider_id }}"
+                        data-metadata-id="{{ forloop.counter0 }}">
                         <td class="field-cover">
                             {% if result.cover_url %}
                                 <img src="{{ result.cover_url }}" alt="Cover" style="max-width: 100px; max-height: 150px;">
@@ -93,6 +178,12 @@
                         <td class="field-isbn13">{{ result.isbn13 }}</td>
                         <td class="field-language">{{ result.language }}</td>
                         <td class="field-description">{{ result.description }}</td>
+                        <td class="field-ebook" data-media-type="book">
+                            <span class="status-loading">Loading...</span>
+                        </td>
+                        <td class="field-audiobook" data-media-type="audiobook">
+                            <span class="status-loading">Loading...</span>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -142,7 +233,198 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if (!mediaType) {
         providerRow.style.display = 'none';
     }
+    
+    {% if results %}
+    checkMediaStatus();
+    {% endif %}
 });
+
+{% if results %}
+function getCsrfToken() {
+    const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+    return csrfInput ? csrfInput.value : '';
+}
+
+function checkMediaStatus() {
+    const resultRows = document.querySelectorAll('tbody tr[data-provider]');
+    if (resultRows.length === 0) {
+        return;
+    }
+    
+    const items = Array.from(resultRows).map(row => ({
+        provider: row.getAttribute('data-provider'),
+        external_id: row.getAttribute('data-external-id')
+    }));
+    
+    fetch('{% url "media:get_media_status" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ items: items })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const statusMap = {};
+        data.statuses.forEach(status => {
+            const key = `${status.provider}:${status.external_id}`;
+            statusMap[key] = status;
+        });
+        
+        resultRows.forEach(row => {
+            const provider = row.getAttribute('data-provider');
+            const externalId = row.getAttribute('data-external-id');
+            const key = `${provider}:${externalId}`;
+            const status = statusMap[key];
+            
+            if (status) {
+                const ebookCell = row.querySelector('.field-ebook');
+                const audiobookCell = row.querySelector('.field-audiobook');
+                
+                if (ebookCell) {
+                    renderStatusCell(ebookCell, status.book, 'book', row);
+                }
+                if (audiobookCell) {
+                    renderStatusCell(audiobookCell, status.audiobook, 'audiobook', row);
+                }
+            }
+        });
+    })
+    .catch(error => {
+        console.error('Error checking media status:', error);
+        resultRows.forEach(row => {
+            const ebookCell = row.querySelector('.field-ebook');
+            const audiobookCell = row.querySelector('.field-audiobook');
+            if (ebookCell) {
+                ebookCell.innerHTML = '<span class="text-muted">Error</span>';
+            }
+            if (audiobookCell) {
+                audiobookCell.innerHTML = '<span class="text-muted">Error</span>';
+            }
+        });
+    });
+}
+
+function getMetadataFromRow(row) {
+    const metadataId = row.getAttribute('data-metadata-id');
+    if (!metadataId) {
+        console.error('No data-metadata-id attribute found on row');
+        return null;
+    }
+    console.log('Looking for script tag with ID:', metadataId);
+    const scriptTag = document.getElementById(metadataId);
+    if (!scriptTag) {
+        console.error('Script tag not found with ID:', metadataId);
+        console.log('Available script tags:', Array.from(document.querySelectorAll('script[type="application/json"]')).map(s => s.id));
+        return null;
+    }
+    try {
+        const metadata = JSON.parse(scriptTag.textContent);
+        return metadata;
+    } catch (e) {
+        console.error('Error parsing metadata:', e);
+        console.error('Script tag content:', scriptTag.textContent);
+        return null;
+    }
+}
+
+function renderStatusCell(cell, statusInfo, mediaType, row) {
+    if (!statusInfo.exists) {
+        const button = document.createElement('button');
+        button.className = 'want-button';
+        button.textContent = 'Mark as Wanted';
+        button.setAttribute('data-media-type', mediaType);
+        button.setAttribute('data-provider', row.getAttribute('data-provider'));
+        button.setAttribute('data-external-id', row.getAttribute('data-external-id'));
+        button.setAttribute('data-metadata-id', row.getAttribute('data-metadata-id'));
+        cell.innerHTML = '';
+        cell.appendChild(button);
+    } else {
+        const badge = document.createElement('span');
+        badge.className = 'status-badge ' + statusInfo.status;
+        
+        const statusText = {
+            'wanted': 'Already Wanted',
+            'searching': 'Searching...',
+            'downloading': 'Downloading...',
+            'imported': 'Imported',
+            'archived': 'Archived'
+        };
+        
+        badge.textContent = statusText[statusInfo.status] || statusInfo.status_display || 'Unknown';
+        cell.innerHTML = '';
+        cell.appendChild(badge);
+    }
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('want-button') && !e.target.disabled) {
+        const button = e.target;
+        const mediaType = button.getAttribute('data-media-type');
+        const provider = button.getAttribute('data-provider');
+        const externalId = button.getAttribute('data-external-id');
+        const metadataId = button.getAttribute('data-metadata-id');
+        
+        const row = button.closest('tr');
+        const metadata = getMetadataFromRow(row);
+        
+        if (!metadata) {
+            console.error('Missing or invalid metadata');
+            return;
+        }
+        
+        button.disabled = true;
+        button.textContent = 'Adding...';
+        
+        fetch('{% url "media:add_wanted_media" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                provider: provider,
+                external_id: externalId,
+                media_type: mediaType === 'book' ? 'book' : 'audiobook',
+                metadata: metadata
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const row = button.closest('tr');
+                const cell = button.closest('td');
+                const statusInfo = {
+                    exists: true,
+                    status: data.status || 'wanted',
+                    status_display: data.status_display || 'Wanted'
+                };
+                renderStatusCell(cell, statusInfo, mediaType, row);
+            } else if (data.error === 'already_exists') {
+                const row = button.closest('tr');
+                const cell = button.closest('td');
+                const statusInfo = {
+                    exists: true,
+                    status: data.status || 'wanted',
+                    status_display: data.status_display || 'Wanted'
+                };
+                renderStatusCell(cell, statusInfo, mediaType, row);
+            } else {
+                button.disabled = false;
+                button.textContent = 'Mark as Wanted';
+                alert('Error: ' + (data.message || data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error adding wanted media:', error);
+            button.disabled = false;
+            button.textContent = 'Mark as Wanted';
+            alert('Error adding media. Please try again.');
+        });
+    }
+});
+{% endif %}
 </script>
 
 {% endblock %}

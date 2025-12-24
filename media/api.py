@@ -70,10 +70,16 @@ def get_media_status(request):
                 {
                     "provider": provider,
                     "external_id": external_id,
-                    "exists": False,
-                    "media_type": None,
-                    "status": None,
-                    "status_display": None,
+                    "book": {
+                        "exists": False,
+                        "status": None,
+                        "status_display": None,
+                    },
+                    "audiobook": {
+                        "exists": False,
+                        "status": None,
+                        "status_display": None,
+                    },
                     "error": f"Invalid provider: {provider}. Must be one of {', '.join(valid_providers)}",
                 }
             )
@@ -86,39 +92,43 @@ def get_media_status(request):
             provider=provider, external_id=external_id
         ).first()
 
+        book_status = None
+        audiobook_status = None
+
         if book_match:
-            statuses.append(
-                {
-                    "provider": provider,
-                    "external_id": external_id,
-                    "exists": True,
-                    "media_type": "book",
-                    "status": book_match.status,
-                    "status_display": book_match.get_status_display(),
-                }
-            )
-        elif audiobook_match:
-            statuses.append(
-                {
-                    "provider": provider,
-                    "external_id": external_id,
-                    "exists": True,
-                    "media_type": "audiobook",
-                    "status": audiobook_match.status,
-                    "status_display": audiobook_match.get_status_display(),
-                }
-            )
+            book_status = {
+                "exists": True,
+                "status": book_match.status,
+                "status_display": book_match.get_status_display(),
+            }
         else:
-            statuses.append(
-                {
-                    "provider": provider,
-                    "external_id": external_id,
-                    "exists": False,
-                    "media_type": None,
-                    "status": None,
-                    "status_display": None,
-                }
-            )
+            book_status = {
+                "exists": False,
+                "status": None,
+                "status_display": None,
+            }
+
+        if audiobook_match:
+            audiobook_status = {
+                "exists": True,
+                "status": audiobook_match.status,
+                "status_display": audiobook_match.get_status_display(),
+            }
+        else:
+            audiobook_status = {
+                "exists": False,
+                "status": None,
+                "status_display": None,
+            }
+
+        statuses.append(
+            {
+                "provider": provider,
+                "external_id": external_id,
+                "book": book_status,
+                "audiobook": audiobook_status,
+            }
+        )
 
     return JsonResponse({"statuses": statuses})
 

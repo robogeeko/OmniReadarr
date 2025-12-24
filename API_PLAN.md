@@ -66,18 +66,30 @@ This document outlines the API design for managing media status and adding items
     {
       "provider": "openlibrary",
       "external_id": "OL123456W",
-      "exists": true,
-      "media_type": "book",
-      "status": "wanted",
-      "status_display": "Wanted"
+      "book": {
+        "exists": true,
+        "status": "wanted",
+        "status_display": "Wanted"
+      },
+      "audiobook": {
+        "exists": false,
+        "status": null,
+        "status_display": null
+      }
     },
     {
       "provider": "openlibrary",
       "external_id": "OL789012W",
-      "exists": false,
-      "media_type": null,
-      "status": null,
-      "status_display": null
+      "book": {
+        "exists": false,
+        "status": null,
+        "status_display": null
+      },
+      "audiobook": {
+        "exists": true,
+        "status": "downloading",
+        "status_display": "Downloading"
+      }
     }
   ]
 }
@@ -85,9 +97,10 @@ This document outlines the API design for managing media status and adding items
 
 **Logic**:
 - Query both Book and Audiobook tables for each (provider, external_id) pair
-- Return the first match found (or null if none)
-- Include both the status code and human-readable display
+- Return status for both book and audiobook separately
+- Each status includes exists flag, status code, and human-readable display
 - Response order matches request order
+- Allows frontend to display separate columns for ebook and audiobook status
 
 **Error Handling**:
 - 400: Missing or invalid providers/external_ids parameters, mismatched list lengths

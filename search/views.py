@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from django.contrib import messages
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -44,32 +46,36 @@ def search_view(request):
                         author=author if author else None,
                     )
 
-                    results = [
-                        {
-                            "title": r.title,
-                            "authors": (
-                                ", ".join(r.authors) if r.authors else "Unknown"
-                            ),
-                            "publisher": r.publisher or "-",
-                            "publication_date": (
-                                r.publication_date.isoformat()
-                                if r.publication_date
-                                else "-"
-                            ),
-                            "isbn": r.isbn or "-",
-                            "isbn13": r.isbn13 or "-",
-                            "language": r.language or "-",
-                            "description": (
-                                r.description[:200] + "..."
-                                if r.description and len(r.description) > 200
-                                else r.description or "-"
-                            ),
-                            "cover_url": r.cover_url or "",
-                            "provider": r.provider,
-                            "provider_id": r.provider_id,
-                        }
-                        for r in search_results
-                    ]
+                    results = []
+                    for r in search_results:
+                        metadata_dict = r.to_dict()
+                        results.append(
+                            {
+                                "title": r.title,
+                                "authors": (
+                                    ", ".join(r.authors) if r.authors else "Unknown"
+                                ),
+                                "publisher": r.publisher or "-",
+                                "publication_date": (
+                                    r.publication_date.isoformat()
+                                    if r.publication_date
+                                    else "-"
+                                ),
+                                "isbn": r.isbn or "-",
+                                "isbn13": r.isbn13 or "-",
+                                "language": r.language or "-",
+                                "description": (
+                                    r.description[:200] + "..."
+                                    if r.description and len(r.description) > 200
+                                    else r.description or "-"
+                                ),
+                                "cover_url": r.cover_url or "",
+                                "provider": r.provider,
+                                "provider_id": r.provider_id,
+                                "metadata": metadata_dict,
+                                "metadata_json": json.dumps(metadata_dict),
+                            }
+                        )
 
                     if results:
                         messages.success(

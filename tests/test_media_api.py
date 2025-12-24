@@ -78,7 +78,9 @@ def sample_audiobook(sample_metadata: dict) -> Audiobook:
 
 @pytest.mark.django_db
 class TestGetMediaStatus:
-    def test_get_status_with_query_params_existing_book(self, client: Client, sample_book: Book):
+    def test_get_status_with_query_params_existing_book(
+        self, client: Client, sample_book: Book
+    ):
         url = reverse("media:get_media_status")
         response = client.get(
             url, {"providers": "openlibrary", "external_ids": "OL123456W"}
@@ -89,10 +91,10 @@ class TestGetMediaStatus:
         assert len(data["statuses"]) == 1
         assert data["statuses"][0]["provider"] == "openlibrary"
         assert data["statuses"][0]["external_id"] == "OL123456W"
-        assert data["statuses"][0]["exists"] is True
-        assert data["statuses"][0]["media_type"] == "book"
-        assert data["statuses"][0]["status"] == "wanted"
-        assert data["statuses"][0]["status_display"] == "Wanted"
+        assert data["statuses"][0]["book"]["exists"] is True
+        assert data["statuses"][0]["book"]["status"] == "wanted"
+        assert data["statuses"][0]["book"]["status_display"] == "Wanted"
+        assert data["statuses"][0]["audiobook"]["exists"] is False
 
     def test_get_status_with_query_params_existing_audiobook(
         self, client: Client, sample_audiobook: Audiobook
@@ -107,10 +109,10 @@ class TestGetMediaStatus:
         assert len(data["statuses"]) == 1
         assert data["statuses"][0]["provider"] == "openlibrary"
         assert data["statuses"][0]["external_id"] == "OL789012W"
-        assert data["statuses"][0]["exists"] is True
-        assert data["statuses"][0]["media_type"] == "audiobook"
-        assert data["statuses"][0]["status"] == "downloading"
-        assert data["statuses"][0]["status_display"] == "Downloading"
+        assert data["statuses"][0]["book"]["exists"] is False
+        assert data["statuses"][0]["audiobook"]["exists"] is True
+        assert data["statuses"][0]["audiobook"]["status"] == "downloading"
+        assert data["statuses"][0]["audiobook"]["status_display"] == "Downloading"
 
     def test_get_status_with_query_params_non_existing(self, client: Client):
         url = reverse("media:get_media_status")
@@ -123,10 +125,12 @@ class TestGetMediaStatus:
         assert len(data["statuses"]) == 1
         assert data["statuses"][0]["provider"] == "openlibrary"
         assert data["statuses"][0]["external_id"] == "OL999999W"
-        assert data["statuses"][0]["exists"] is False
-        assert data["statuses"][0]["media_type"] is None
-        assert data["statuses"][0]["status"] is None
-        assert data["statuses"][0]["status_display"] is None
+        assert data["statuses"][0]["book"]["exists"] is False
+        assert data["statuses"][0]["book"]["status"] is None
+        assert data["statuses"][0]["book"]["status_display"] is None
+        assert data["statuses"][0]["audiobook"]["exists"] is False
+        assert data["statuses"][0]["audiobook"]["status"] is None
+        assert data["statuses"][0]["audiobook"]["status_display"] is None
 
     def test_get_status_with_query_params_multiple_items(
         self, client: Client, sample_book: Book, sample_audiobook: Audiobook
@@ -143,10 +147,10 @@ class TestGetMediaStatus:
         assert response.status_code == 200
         data = json.loads(response.content)
         assert len(data["statuses"]) == 2
-        assert data["statuses"][0]["exists"] is True
-        assert data["statuses"][0]["media_type"] == "book"
-        assert data["statuses"][1]["exists"] is True
-        assert data["statuses"][1]["media_type"] == "audiobook"
+        assert data["statuses"][0]["book"]["exists"] is True
+        assert data["statuses"][0]["book"]["status"] == "wanted"
+        assert data["statuses"][1]["audiobook"]["exists"] is True
+        assert data["statuses"][1]["audiobook"]["status"] == "downloading"
 
     def test_get_status_with_query_params_missing_providers(self, client: Client):
         url = reverse("media:get_media_status")
@@ -181,7 +185,9 @@ class TestGetMediaStatus:
         assert "error" in data
         assert "length" in data["error"].lower()
 
-    def test_get_status_with_post_existing_book(self, client: Client, sample_book: Book):
+    def test_get_status_with_post_existing_book(
+        self, client: Client, sample_book: Book
+    ):
         url = reverse("media:get_media_status")
         payload = {
             "items": [
@@ -195,8 +201,9 @@ class TestGetMediaStatus:
         assert response.status_code == 200
         data = json.loads(response.content)
         assert len(data["statuses"]) == 1
-        assert data["statuses"][0]["exists"] is True
-        assert data["statuses"][0]["media_type"] == "book"
+        assert data["statuses"][0]["book"]["exists"] is True
+        assert data["statuses"][0]["book"]["status"] == "wanted"
+        assert data["statuses"][0]["audiobook"]["exists"] is False
 
     def test_get_status_with_post_multiple_items(
         self, client: Client, sample_book: Book, sample_audiobook: Audiobook
@@ -216,9 +223,10 @@ class TestGetMediaStatus:
         assert response.status_code == 200
         data = json.loads(response.content)
         assert len(data["statuses"]) == 3
-        assert data["statuses"][0]["exists"] is True
-        assert data["statuses"][1]["exists"] is True
-        assert data["statuses"][2]["exists"] is False
+        assert data["statuses"][0]["book"]["exists"] is True
+        assert data["statuses"][1]["audiobook"]["exists"] is True
+        assert data["statuses"][2]["book"]["exists"] is False
+        assert data["statuses"][2]["audiobook"]["exists"] is False
 
     def test_get_status_with_post_invalid_json(self, client: Client):
         url = reverse("media:get_media_status")
@@ -259,7 +267,8 @@ class TestGetMediaStatus:
         assert response.status_code == 200
         data = json.loads(response.content)
         assert len(data["statuses"]) == 1
-        assert data["statuses"][0]["exists"] is False
+        assert data["statuses"][0]["book"]["exists"] is False
+        assert data["statuses"][0]["audiobook"]["exists"] is False
         assert "error" in data["statuses"][0]
         assert "invalid" in data["statuses"][0]["error"].lower()
 
@@ -281,8 +290,10 @@ class TestGetMediaStatus:
 
         assert response.status_code == 200
         data = json.loads(response.content)
-        assert data["statuses"][0]["media_type"] == "book"
-        assert data["statuses"][0]["status"] == "wanted"
+        assert data["statuses"][0]["book"]["exists"] is True
+        assert data["statuses"][0]["book"]["status"] == "wanted"
+        assert data["statuses"][0]["audiobook"]["exists"] is True
+        assert data["statuses"][0]["audiobook"]["status"] == "downloading"
 
 
 @pytest.mark.django_db
@@ -408,7 +419,9 @@ class TestAddWantedMedia:
         assert "error" in data
         assert "provider" in data["error"].lower()
 
-    def test_add_wanted_missing_external_id(self, client: Client, sample_metadata: dict):
+    def test_add_wanted_missing_external_id(
+        self, client: Client, sample_metadata: dict
+    ):
         url = reverse("media:add_wanted_media")
         payload = {
             "provider": "openlibrary",
@@ -543,4 +556,3 @@ class TestAddWantedMedia:
         assert Audiobook.objects.filter(
             provider="openlibrary", external_id="OL123456W"
         ).exists()
-
