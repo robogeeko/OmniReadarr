@@ -80,6 +80,9 @@ class Media(BaseModel):
         default=MediaStatus.WANTED,
     )
 
+    provider = models.CharField(max_length=50, blank=True)
+    external_id = models.CharField(max_length=500, blank=True)
+
     class Meta:
         abstract = True
         ordering = ["sort_title", "title"]
@@ -89,6 +92,7 @@ class Media(BaseModel):
             models.Index(fields=["added_date"]),
             models.Index(fields=["language"]),
             models.Index(fields=["publisher"]),
+            models.Index(fields=["provider", "external_id"]),
         ]
 
     def __str__(self) -> str:
