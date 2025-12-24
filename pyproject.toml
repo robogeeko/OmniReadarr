@@ -7,6 +7,7 @@ dependencies = [
     "django>=6.0",
     "django-dramatiq>=0.15.0",
     "django-environ>=0.12.0",
+    "django-stubs>=5.2.8",
     "dramatiq[rabbitmq]>=2.0.0",
     "gunicorn>=23.0.0",
     "httpx>=0.27.0",
