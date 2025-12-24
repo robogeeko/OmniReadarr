@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Search{% endblock %}
+
+{% block content %}
+<h1>Search</h1>
+
+<form method="post" action="{% url 'search:search' %}">
+    {% csrf_token %}
+    
+    <fieldset class="module aligned">
+        <h2>Search</h2>
+        <div class="form-row">
+            <div>
+                <label for="title">Title:</label>
+                <input type="text" name="title" id="title" size="50" placeholder="Enter title...">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div>
+                <label for="author">Author:</label>
+                <input type="text" name="author" id="author" size="50" placeholder="Enter author name...">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div>
+                <label for="media_type">Media Type:</label>
+                <select name="media_type" id="media_type" required>
+                    <option value="">-- Select media type --</option>
+                    <option value="book" {% if selected_media_type == "book" %}selected{% endif %}>Book</option>
+                    <option value="comic" {% if selected_media_type == "comic" %}selected{% endif %}>Comic</option>
+                    <option value="manga" {% if selected_media_type == "manga" %}selected{% endif %}>Manga</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row" id="provider_row" {% if not providers %}style="display: none;"{% endif %}>
+            <div>
+                <label for="provider_id">Search Provider:</label>
+                <select name="provider_id" id="provider_id" required>
+                    <option value="">-- Select a provider --</option>
+                    {% for provider in providers %}
+                        <option value="{{ provider.id }}" {% if selected_provider_id == provider.id|stringformat:"s" %}selected{% endif %}>{{ provider.name }} ({{ provider.get_provider_type_display }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div>
+                <button type="submit" class="button default">Search</button>
+            </div>
+        </div>
+    </fieldset>
+</form>
+
+{% if results %}
+    <fieldset class="module">
+        <h2>Search Results ({{ results|length }})</h2>
+        <div class="results">
+            <table id="result_list" class="results">
+                <thead>
+                    <tr>
+                        <th scope="col" class="column-cover">Cover</th>
+                        <th scope="col" class="column-title">Title</th>
+                        <th scope="col" class="column-authors">Authors</th>
+                        <th scope="col" class="column-publisher">Publisher</th>
+                        <th scope="col" class="column-publication_date">Publication Date</th>
+                        <th scope="col" class="column-isbn">ISBN</th>
+                        <th scope="col" class="column-isbn13">ISBN-13</th>
+                        <th scope="col" class="column-language">Language</th>
+                        <th scope="col" class="column-description">Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr class="{% cycle 'row1' 'row2' %}">
+                        <td class="field-cover">
+                            {% if result.cover_url %}
+                                <img src="{{ result.cover_url }}" alt="Cover" style="max-width: 100px; max-height: 150px;">
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="field-title"><strong>{{ result.title }}</strong></td>
+                        <td class="field-authors">{{ result.authors }}</td>
+                        <td class="field-publisher">{{ result.publisher }}</td>
+                        <td class="field-publication_date">{{ result.publication_date }}</td>
+                        <td class="field-isbn">{{ result.isbn }}</td>
+                        <td class="field-isbn13">{{ result.isbn13 }}</td>
+                        <td class="field-language">{{ result.language }}</td>
+                        <td class="field-description">{{ result.description }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </fieldset>
+{% endif %}
+
+<script>
+document.getElementById('media_type').addEventListener('change', function() {
+    const mediaType = this.value;
+    const providerSelect = document.getElementById('provider_id');
+    
+    if (mediaType) {
+        fetch('{% url "search:providers_json" %}?media_type=' + mediaType)
+            .then(response => response.json())
+            .then(data => {
+                providerSelect.innerHTML = '<option value="">-- Select a provider --</option>';
+                data.providers.forEach(provider => {
+                    const option = document.createElement('option');
+                    option.value = provider.id;
+                    option.textContent = provider.name + ' (' + provider.provider_type + ')';
+                    providerSelect.appendChild(option);
+                });
+                
+                const providerRow = providerSelect.closest('.form-row');
+                if (data.providers.length > 0) {
+                    providerRow.style.display = '';
+                } else {
+                    providerRow.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading providers:', error);
+            });
+    } else {
+        providerSelect.innerHTML = '<option value="">-- Select a provider --</option>';
+        providerSelect.closest('.form-row').style.display = 'none';
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const mediaType = document.getElementById('media_type').value;
+    const providerRow = document.getElementById('provider_row');
+    if (mediaType && {{ providers|length }} > 0) {
+        providerRow.style.display = '';
+    } else if (!mediaType) {
+        providerRow.style.display = 'none';
+    }
+});
+</script>
+
+{% endblock %}
+
