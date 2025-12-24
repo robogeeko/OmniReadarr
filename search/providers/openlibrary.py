@@ -13,15 +13,22 @@ class OpenLibraryProvider(BaseProvider):
     """OpenLibrary API provider"""
 
     def search(
-        self, query: str, media_type: str, language: str | None = None
+        self,
+        query: str,
+        media_type: str,
+        language: str | None = None,
+        title: str | None = None,
+        author: str | None = None,
     ) -> list[NormalizedMetadata]:
         """
         Search OpenLibrary for books.
 
         Args:
-            query: Search query string
+            query: General search query string (used if title/author not provided)
             media_type: Type of media (book or audiobook)
             language: Optional language code to filter results (e.g., "en", "eng")
+            title: Optional title to search for
+            author: Optional author name to search for
 
         Returns:
             List of normalized BookMetadata objects
@@ -30,7 +37,19 @@ class OpenLibraryProvider(BaseProvider):
             return []
 
         url = f"{self.base_url}/search.json"
-        params = {"q": query, "limit": 50}
+
+        search_parts = []
+        if title:
+            search_parts.append(f"title:{title}")
+        if author:
+            search_parts.append(f"author:{author}")
+
+        if search_parts:
+            search_query = " AND ".join(search_parts)
+        else:
+            search_query = query
+
+        params = {"q": search_query, "limit": 50}
 
         try:
             response = httpx.get(url, params=params, timeout=10.0)
@@ -92,7 +111,7 @@ class OpenLibraryProvider(BaseProvider):
 
         elif identifier_type in ["isbn", "isbn13"]:
             query = f"isbn:{identifier}"
-            results = self.search(query, "book", language=None)
+            results = self.search(query, "book", language=None, title=None, author=None)
             return results[0] if results else None
 
         return None

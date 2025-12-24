@@ -105,7 +105,7 @@ class SearchProviderAdmin(admin.ModelAdmin):
             try:
                 provider_instance = get_provider_instance(provider)
                 results = provider_instance.search(
-                    test_query, test_media_type, language=None
+                    test_query, test_media_type, language=None, title=None, author=None
                 )
 
                 provider.last_checked_at = timezone.now()
@@ -191,16 +191,22 @@ class SearchProviderAdmin(admin.ModelAdmin):
 
         if request.method == "POST":
             query = request.POST.get("query", "").strip()
+            title = request.POST.get("title", "").strip()
+            author = request.POST.get("author", "").strip()
             media_type = request.POST.get("media_type", "book")
-            language = request.POST.get("language", "en")
+            language = request.POST.get("language", "").strip() or None
 
-            if not query:
-                messages.error(request, "Please enter a search term")
+            if not query and not title and not author:
+                messages.error(request, "Please enter a search term, title, or author")
             else:
                 try:
                     provider_instance = get_provider_instance(provider)
                     search_results = provider_instance.search(
-                        query, media_type, language=language if language else None
+                        query if query else "",
+                        media_type,
+                        language=language if language else None,
+                        title=title if title else None,
+                        author=author if author else None,
                     )
                     provider.last_checked_at = timezone.now()
                     provider.last_error = ""

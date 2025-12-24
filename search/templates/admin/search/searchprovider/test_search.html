@@ -4,7 +4,6 @@
 {% block title %}Test Search - {{ provider.name }}{% endblock %}
 
 {% block content %}
-<h1>Test Search - {{ provider.name }}</h1>
 
 <p><a href="{% url 'admin:search_searchprovider_change' provider.pk %}">&larr; Back to {{ provider.name }}</a></p>
 
@@ -15,8 +14,22 @@
         <h2>Search</h2>
         <div class="form-row">
             <div>
-                <label for="query">Search Term:</label>
-                <input type="text" name="query" id="query" size="50" placeholder="Enter search term...">
+                <label for="title">Title:</label>
+                <input type="text" name="title" id="title" size="50" placeholder="Enter title...">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div>
+                <label for="author">Author:</label>
+                <input type="text" name="author" id="author" size="50" placeholder="Enter author name...">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div>
+                <label for="query">General Search (if title/author not specified):</label>
+                <input type="text" name="query" id="query" size="50" placeholder="Enter general search term...">
             </div>
         </div>
         
@@ -34,7 +47,8 @@
             <div>
                 <label for="language">Language:</label>
                 <select name="language" id="language">
-                    <option value="en" selected>English</option>
+                    <option value="" selected>All Languages</option>
+                    <option value="en">English</option>
                 </select>
             </div>
         </div>

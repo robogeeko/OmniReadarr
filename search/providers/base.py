@@ -18,17 +18,24 @@ class BaseProvider(ABC):
 
     @abstractmethod
     def search(
-        self, query: str, media_type: str, language: str | None = None
+        self,
+        query: str,
+        media_type: str,
+        language: str | None = None,
+        title: str | None = None,
+        author: str | None = None,
     ) -> list[NormalizedMetadata]:
         """
         Search provider and return normalized results.
 
         Args:
-            query: Search query string
+            query: General search query string (used if title/author not provided)
             media_type: Hint for type of media to search for (book, audiobook, manga, comic).
                        Providers should return the appropriate metadata type based on what they
                        actually find, not necessarily what media_type suggests.
             language: Optional language code to filter results (e.g., "en", "eng", "fre")
+            title: Optional title to search for (takes precedence over query if provided)
+            author: Optional author name to search for (can be combined with title)
 
         Returns:
             List of normalized metadata objects. Each provider should return the appropriate
