@@ -62,7 +62,7 @@ class Command(BaseCommand):
 
             try:
                 provider = get_provider_instance(provider_model)
-                results = provider.search(query, media_type)
+                results = provider.search(query, media_type, language=None)
 
                 if not results:
                     self.stdout.write(self.style.WARNING("  No results found"))

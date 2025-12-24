@@ -104,7 +104,9 @@ class SearchProviderAdmin(admin.ModelAdmin):
         for provider in queryset:
             try:
                 provider_instance = get_provider_instance(provider)
-                results = provider_instance.search(test_query, test_media_type)
+                results = provider_instance.search(
+                    test_query, test_media_type, language=None
+                )
 
                 provider.last_checked_at = timezone.now()
                 provider.last_error = ""
@@ -197,7 +199,9 @@ class SearchProviderAdmin(admin.ModelAdmin):
             else:
                 try:
                     provider_instance = get_provider_instance(provider)
-                    search_results = provider_instance.search(query, media_type)
+                    search_results = provider_instance.search(
+                        query, media_type, language=language if language else None
+                    )
                     provider.last_checked_at = timezone.now()
                     provider.last_error = ""
                     provider.save(update_fields=["last_checked_at", "last_error"])

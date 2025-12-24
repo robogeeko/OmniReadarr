@@ -17,7 +17,9 @@ class BaseProvider(ABC):
         self.rate_limit_per_minute = config.get("rate_limit_per_minute", 60)
 
     @abstractmethod
-    def search(self, query: str, media_type: str) -> list[NormalizedMetadata]:
+    def search(
+        self, query: str, media_type: str, language: str | None = None
+    ) -> list[NormalizedMetadata]:
         """
         Search provider and return normalized results.
 
@@ -26,6 +28,7 @@ class BaseProvider(ABC):
             media_type: Hint for type of media to search for (book, audiobook, manga, comic).
                        Providers should return the appropriate metadata type based on what they
                        actually find, not necessarily what media_type suggests.
+            language: Optional language code to filter results (e.g., "en", "eng", "fre")
 
         Returns:
             List of normalized metadata objects. Each provider should return the appropriate

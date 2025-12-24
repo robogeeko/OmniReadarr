@@ -12,13 +12,16 @@ from search.providers.results import BookMetadata, NormalizedMetadata
 class OpenLibraryProvider(BaseProvider):
     """OpenLibrary API provider"""
 
-    def search(self, query: str, media_type: str) -> list[NormalizedMetadata]:
+    def search(
+        self, query: str, media_type: str, language: str | None = None
+    ) -> list[NormalizedMetadata]:
         """
         Search OpenLibrary for books.
 
         Args:
             query: Search query string
             media_type: Type of media (book or audiobook)
+            language: Optional language code to filter results (e.g., "en", "eng")
 
         Returns:
             List of normalized BookMetadata objects
@@ -27,7 +30,7 @@ class OpenLibraryProvider(BaseProvider):
             return []
 
         url = f"{self.base_url}/search.json"
-        params = {"q": query, "limit": 20}
+        params = {"q": query, "limit": 50}
 
         try:
             response = httpx.get(url, params=params, timeout=10.0)
@@ -38,7 +41,27 @@ class OpenLibraryProvider(BaseProvider):
             for doc in data.get("docs", []):
                 normalized = self.normalize_result(doc)
                 if normalized:
+                    if language:
+                        normalized_lang = normalized.language.lower()
+                        language_map = {
+                            "en": ["eng", "en", "english"],
+                            "fr": ["fre", "fr", "french"],
+                            "de": ["ger", "de", "german"],
+                            "es": ["spa", "es", "spanish"],
+                            "it": ["ita", "it", "italian"],
+                        }
+                        target_langs = language_map.get(
+                            language.lower(), [language.lower()]
+                        )
+                        if normalized_lang and not any(
+                            target_lang in normalized_lang
+                            or normalized_lang in target_lang
+                            for target_lang in target_langs
+                        ):
+                            continue
                     results.append(normalized)
+                    if len(results) >= 20:
+                        break
 
             return results
         except httpx.HTTPError:
@@ -69,7 +92,7 @@ class OpenLibraryProvider(BaseProvider):
 
         elif identifier_type in ["isbn", "isbn13"]:
             query = f"isbn:{identifier}"
-            results = self.search(query, "book")
+            results = self.search(query, "book", language=None)
             return results[0] if results else None
 
         return None
