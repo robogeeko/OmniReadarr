@@ -29,6 +29,8 @@ INSTALLED_APPS = [
     "core",
     "media",
     "search",
+    "indexers",
+    "downloaders",
 ]
 
 MIDDLEWARE = [

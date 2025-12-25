@@ -1,8 +1,6 @@
 import pytest
 
-pytest_plugins = ["pytest_django"]
-
-from media.models import Audiobook, Book  # noqa: E402
+from media.models import Audiobook, Book
 
 
 @pytest.fixture
@@ -21,3 +19,4 @@ def audiobook():
         authors=["Test Author"],
         status="wanted",
     )
+
