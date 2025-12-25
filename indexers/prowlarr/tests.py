@@ -372,6 +372,98 @@ class TestProwlarrClientGetIndexerCapabilities:
         assert indexer is None
 
 
+class TestProwlarrClientSendToDownloadClient:
+    @patch("httpx.post")
+    def test_send_to_download_client_success(self, mock_post, client):
+        mock_response = httpx.Response(
+            200,
+            json={
+                "id": 123,
+                "name": "DownloadRelease",
+                "message": "Download sent to download client",
+                "body": {"downloadClientId": "sabnzbd-456"},
+            },
+        )
+        mock_response._request = None
+        mock_response.raise_for_status = lambda: None
+        mock_post.return_value = mock_response
+
+        result = client.send_to_download_client(indexer_id=1, guid="test-guid-123")
+
+        assert result["id"] == 123
+        assert result["name"] == "DownloadRelease"
+        assert result["message"] == "Download sent to download client"
+        assert result["download_client_id"] == "sabnzbd-456"
+
+        call_args = mock_post.call_args
+        assert call_args[0][0] == "http://localhost:9696/api/v1/command"
+        assert call_args[1]["headers"] == {"X-Api-Key": "test-api-key"}
+        assert call_args[1]["json"] == {
+            "name": "DownloadRelease",
+            "indexerId": 1,
+            "guid": "test-guid-123",
+        }
+
+    @patch("httpx.post")
+    def test_send_to_download_client_missing_fields(self, mock_post, client):
+        mock_response = httpx.Response(
+            200,
+            json={
+                "id": 123,
+                "name": "DownloadRelease",
+            },
+        )
+        mock_response._request = None
+        mock_response.raise_for_status = lambda: None
+        mock_post.return_value = mock_response
+
+        result = client.send_to_download_client(indexer_id=1, guid="test-guid-123")
+
+        assert result["id"] == 123
+        assert result["name"] == "DownloadRelease"
+        assert result["message"] == ""
+        assert result["download_client_id"] is None
+
+    @patch("httpx.post")
+    def test_send_to_download_client_authentication_error(self, mock_post, client):
+        mock_response = httpx.Response(401, text="Unauthorized")
+        mock_post.side_effect = httpx.HTTPStatusError(
+            "Unauthorized", request=None, response=mock_response
+        )
+
+        with pytest.raises(ProwlarrClientError, match="Authentication failed"):
+            client.send_to_download_client(indexer_id=1, guid="test-guid-123")
+
+    @patch("httpx.post")
+    def test_send_to_download_client_not_found(self, mock_post, client):
+        mock_response = httpx.Response(404, text="Not Found")
+        mock_post.side_effect = httpx.HTTPStatusError(
+            "Not Found", request=None, response=mock_response
+        )
+
+        with pytest.raises(
+            ProwlarrClientError, match="Release not found"
+        ):
+            client.send_to_download_client(indexer_id=1, guid="invalid-guid")
+
+    @patch("httpx.post")
+    def test_send_to_download_client_timeout(self, mock_post, client):
+        mock_post.side_effect = httpx.TimeoutException("Timeout")
+
+        with pytest.raises(ProwlarrClientError, match="Request timeout"):
+            client.send_to_download_client(indexer_id=1, guid="test-guid-123")
+
+    @patch("httpx.post")
+    def test_send_to_download_client_http_error(self, mock_post, client):
+        mock_response = httpx.Response(500, text="Internal Server Error")
+        mock_post.side_effect = httpx.HTTPStatusError(
+            "Error", request=None, response=mock_response
+        )
+
+        with pytest.raises(ProwlarrClientError, match="HTTP error 500"):
+            client.send_to_download_client(indexer_id=1, guid="test-guid-123")
+
+
 class TestSearchResult:
     def test_from_dict_complete(self):
         data = {

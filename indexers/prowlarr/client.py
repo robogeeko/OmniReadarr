@@ -136,3 +136,43 @@ class ProwlarrClient:
             if indexer.id == indexer_id:
                 return indexer
         return None
+
+    def send_to_download_client(self, indexer_id: int, guid: str) -> dict:
+        try:
+            url = f"{self.base_url}/api/v1/command"
+            payload = {
+                "name": "DownloadRelease",
+                "indexerId": indexer_id,
+                "guid": guid,
+            }
+            response = httpx.post(
+                url,
+                headers=self.headers,
+                json=payload,
+                timeout=self.config.timeout,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            return {
+                "id": data.get("id"),
+                "name": data.get("name"),
+                "message": data.get("message", ""),
+                "download_client_id": data.get("body", {}).get("downloadClientId"),
+            }
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 401:
+                raise ProwlarrClientError("Authentication failed - check API key")
+            if e.response.status_code == 404:
+                raise ProwlarrClientError(
+                    f"Release not found (indexer_id={indexer_id}, guid={guid})"
+                )
+            raise ProwlarrClientError(
+                f"HTTP error {e.response.status_code}: {e.response.text}"
+            )
+        except httpx.TimeoutException:
+            raise ProwlarrClientError(
+                f"Request timeout after {self.config.timeout} seconds"
+            )
+        except Exception as e:
+            raise ProwlarrClientError(f"Download initiation failed: {str(e)}")
