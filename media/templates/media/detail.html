@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ media.title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid;
+    white-space: nowrap;
+}
+
+.status-badge.wanted {
+    background-color: #e8f4f8;
+    color: #417690;
+    border-color: #417690;
+}
+
+.status-badge.searching {
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffc107;
+}
+
+.status-badge.downloading {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border-color: #17a2b8;
+}
+
+.status-badge.imported {
+    background-color: #d4edda;
+    color: #155724;
+    border-color: #28a745;
+}
+
+.status-badge.archived {
+    background-color: #e2e3e5;
+    color: #383d41;
+    border-color: #6c757d;
+}
+
+.detail-section {
+    margin-bottom: 30px;
+}
+
+.detail-section h3 {
+    margin-top: 0;
+    border-bottom: 2px solid #417690;
+    padding-bottom: 8px;
+    color: #417690;
+}
+
+.detail-row {
+    display: flex;
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.detail-label {
+    font-weight: bold;
+    min-width: 150px;
+    color: #666;
+}
+
+.detail-value {
+    flex: 1;
+}
+
+.cover-image {
+    max-width: 300px;
+    max-height: 450px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: #417690;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'media:library' %}" class="back-link">← Back to Library</a>
+
+<h1>{{ media.title }}</h1>
+
+<div class="module">
+    <div class="detail-section">
+        <h3>Basic Information</h3>
+        
+        <div class="detail-row">
+            <div class="detail-label">Type:</div>
+            <div class="detail-value">{{ media_type_display }}</div>
+        </div>
+        
+        <div class="detail-row">
+            <div class="detail-label">Status:</div>
+            <div class="detail-value">
+                <span class="status-badge {{ media.status }}">{{ media.get_status_display }}</span>
+            </div>
+        </div>
+        
+        <div class="detail-row">
+            <div class="detail-label">Title:</div>
+            <div class="detail-value">{{ media.title }}</div>
+        </div>
+        
+        {% if media.sort_title and media.sort_title != media.title %}
+        <div class="detail-row">
+            <div class="detail-label">Sort Title:</div>
+            <div class="detail-value">{{ media.sort_title }}</div>
+        </div>
+        {% endif %}
+        
+        <div class="detail-row">
+            <div class="detail-label">Authors:</div>
+            <div class="detail-value">{{ media.authors|join:", "|default:"-" }}</div>
+        </div>
+        
+        {% if media.series %}
+        <div class="detail-row">
+            <div class="detail-label">Series:</div>
+            <div class="detail-value">
+                {{ media.series }}{% if media.series_index %} #{{ media.series_index }}{% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if media.description %}
+        <div class="detail-row">
+            <div class="detail-label">Description:</div>
+            <div class="detail-value">{{ media.description|linebreaks }}</div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="detail-section">
+        <h3>Publication Details</h3>
+        
+        {% if media.publisher %}
+        <div class="detail-row">
+            <div class="detail-label">Publisher:</div>
+            <div class="detail-value">{{ media.publisher }}</div>
+        </div>
+        {% endif %}
+        
+        {% if media.publication_date %}
+        <div class="detail-row">
+            <div class="detail-label">Publication Date:</div>
+            <div class="detail-value">{{ media.publication_date|date:"F Y" }}</div>
+        </div>
+        {% endif %}
+        
+        {% if media.language %}
+        <div class="detail-row">
+            <div class="detail-label">Language:</div>
+            <div class="detail-value">{{ media.language }}</div>
+        </div>
+        {% endif %}
+        
+        {% if media_type == "book" %}
+            {% if media.isbn %}
+            <div class="detail-row">
+                <div class="detail-label">ISBN:</div>
+                <div class="detail-value">{{ media.isbn }}</div>
+            </div>
+            {% endif %}
+            
+            {% if media.isbn13 %}
+            <div class="detail-row">
+                <div class="detail-label">ISBN-13:</div>
+                <div class="detail-value">{{ media.isbn13 }}</div>
+            </div>
+            {% endif %}
+            
+            {% if media.page_count %}
+            <div class="detail-row">
+                <div class="detail-label">Page Count:</div>
+                <div class="detail-value">{{ media.page_count }}</div>
+            </div>
+            {% endif %}
+            
+            {% if media.edition %}
+            <div class="detail-row">
+                <div class="detail-label">Edition:</div>
+                <div class="detail-value">{{ media.edition }}</div>
+            </div>
+            {% endif %}
+        {% endif %}
+        
+        {% if media_type == "audiobook" %}
+            {% if media.narrators %}
+            <div class="detail-row">
+                <div class="detail-label">Narrators:</div>
+                <div class="detail-value">{{ media.narrators|join:", " }}</div>
+            </div>
+            {% endif %}
+            
+            {% if duration_formatted %}
+            <div class="detail-row">
+                <div class="detail-label">Duration:</div>
+                <div class="detail-value">{{ duration_formatted }}</div>
+            </div>
+            {% endif %}
+            
+            {% if media.bitrate %}
+            <div class="detail-row">
+                <div class="detail-label">Bitrate:</div>
+                <div class="detail-value">{{ media.bitrate }} kbps</div>
+            </div>
+            {% endif %}
+            
+            {% if media.chapters %}
+            <div class="detail-row">
+                <div class="detail-label">Chapters:</div>
+                <div class="detail-value">{{ media.chapters }}</div>
+            </div>
+            {% endif %}
+        {% endif %}
+    </div>
+    
+    {% if media.genres or media.tags %}
+    <div class="detail-section">
+        <h3>Categories</h3>
+        
+        {% if media.genres %}
+        <div class="detail-row">
+            <div class="detail-label">Genres:</div>
+            <div class="detail-value">{{ media.genres|join:", " }}</div>
+        </div>
+        {% endif %}
+        
+        {% if media.tags %}
+        <div class="detail-row">
+            <div class="detail-label">Tags:</div>
+            <div class="detail-value">{{ media.tags|join:", " }}</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% if media.rating %}
+    <div class="detail-section">
+        <h3>Rating</h3>
+        
+        <div class="detail-row">
+            <div class="detail-label">Rating:</div>
+            <div class="detail-value">{{ media.rating }}/10</div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="detail-section">
+        <h3>Metadata</h3>
+        
+        {% if media.cover_url %}
+        <div class="detail-row">
+            <div class="detail-label">Cover:</div>
+            <div class="detail-value">
+                <img src="{{ media.cover_url }}" alt="Cover" class="cover-image">
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="detail-row">
+            <div class="detail-label">Provider:</div>
+            <div class="detail-value">{{ media.provider|default:"-" }}</div>
+        </div>
+        
+        <div class="detail-row">
+            <div class="detail-label">External ID:</div>
+            <div class="detail-value">{{ media.external_id|default:"-" }}</div>
+        </div>
+        
+        <div class="detail-row">
+            <div class="detail-label">Added Date:</div>
+            <div class="detail-value">{{ media.added_date|date:"F j, Y g:i A" }}</div>
+        </div>
+        
+        <div class="detail-row">
+            <div class="detail-label">Created:</div>
+            <div class="detail-value">{{ media.created_at|date:"F j, Y g:i A" }}</div>
+        </div>
+        
+        <div class="detail-row">
+            <div class="detail-label">Last Updated:</div>
+            <div class="detail-value">{{ media.updated_at|date:"F j, Y g:i A" }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -3,89 +3,105 @@
 
 {% block title %}Library{% endblock %}
 
+{% block extra_head %}
+<style>
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid;
+    white-space: nowrap;
+}
+
+.status-badge.wanted {
+    background-color: #e8f4f8;
+    color: #417690;
+    border-color: #417690;
+}
+
+.status-badge.searching {
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffc107;
+}
+
+.status-badge.downloading {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border-color: #17a2b8;
+}
+
+.status-badge.imported {
+    background-color: #d4edda;
+    color: #155724;
+    border-color: #28a745;
+}
+
+.status-badge.archived {
+    background-color: #e2e3e5;
+    color: #383d41;
+    border-color: #6c757d;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <h1>Library</h1>
 
-<div class="module">
-    <h2>Statistics</h2>
-    <p><strong>Total Books:</strong> {{ total_books }}</p>
-    <p><strong>Total Audiobooks:</strong> {{ total_audiobooks }}</p>
-</div>
+<form method="get" action="{% url 'media:library' %}">
+    <div class="form-row">
+        <div>
+            <label for="media_type">Filter by Media Type:</label>
+            <select name="media_type" id="media_type" onchange="this.form.submit()">
+                <option value="">All Media Types</option>
+                <option value="book" {% if selected_media_type == "book" %}selected{% endif %}>Books</option>
+                <option value="audiobook" {% if selected_media_type == "audiobook" %}selected{% endif %}>Audiobooks</option>
+            </select>
+        </div>
+    </div>
+</form>
 
-{% if books %}
+{% if media_items %}
 <div class="module">
-    <h2>Recent Books ({{ books|length }})</h2>
+    <h2>Media ({{ media_items|length }})</h2>
     <table>
         <thead>
             <tr>
+                <th>Type</th>
                 <th>Title</th>
                 <th>Authors</th>
                 <th>Series</th>
-                <th>Status</th>
                 <th>Added Date</th>
+                <th>Status</th>
             </tr>
         </thead>
         <tbody>
-            {% for book in books %}
-            <tr>
-                <td><strong>{{ book.title }}</strong></td>
-                <td>{{ book.authors|join:", " }}</td>
+            {% for item in media_items %}
+            <tr onclick="window.location='{% url 'media:detail' media_type=item.media_type media_id=item.id %}';" style="cursor: pointer;">
+                <td>{{ item.media_type_display }}</td>
+                <td><strong>{{ item.title }}</strong></td>
+                <td>{{ item.authors|join:", " }}</td>
                 <td>
-                    {% if book.series %}
-                        {{ book.series }}{% if book.series_index %} #{{ book.series_index }}{% endif %}
+                    {% if item.series %}
+                        {{ item.series }}{% if item.series_index %} #{{ item.series_index }}{% endif %}
                     {% else %}
                         -
                     {% endif %}
                 </td>
-                <td>{{ book.get_status_display }}</td>
-                <td>{{ book.added_date|date:"Y-m-d" }}</td>
+                <td>{{ item.added_date|date:"Y-m-d" }}</td>
+                <td>
+                    <span class="status-badge {{ item.status }}">{{ item.status_display }}</span>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
-{% endif %}
-
-{% if audiobooks %}
+{% else %}
 <div class="module">
-    <h2>Recent Audiobooks ({{ audiobooks|length }})</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Authors</th>
-                <th>Narrators</th>
-                <th>Series</th>
-                <th>Status</th>
-                <th>Added Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for audiobook in audiobooks %}
-            <tr>
-                <td><strong>{{ audiobook.title }}</strong></td>
-                <td>{{ audiobook.authors|join:", " }}</td>
-                <td>{{ audiobook.narrators|join:", "|default:"-" }}</td>
-                <td>
-                    {% if audiobook.series %}
-                        {{ audiobook.series }}{% if audiobook.series_index %} #{{ audiobook.series_index }}{% endif %}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                <td>{{ audiobook.get_status_display }}</td>
-                <td>{{ audiobook.added_date|date:"Y-m-d" }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% endif %}
-
-{% if not books and not audiobooks %}
-<div class="module">
-    <p>No media in library yet. <a href="{% url 'search:search' %}">Search for books</a> to add them to your library.</p>
+    <p>No media found{% if selected_media_type %} for the selected filter{% endif %}. <a href="{% url 'search:search' %}">Search for books</a> to add them to your library.</p>
 </div>
 {% endif %}
 {% endblock %}
-

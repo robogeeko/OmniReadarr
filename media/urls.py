@@ -6,6 +6,7 @@ app_name = "media"
 
 urlpatterns = [
     path("library/", views.library_view, name="library"),
+    path("media/<str:media_type>/<uuid:media_id>/", views.media_detail_view, name="detail"),
     path("api/media/status/", api.get_media_status, name="get_media_status"),
     path("api/media/wanted/", api.add_wanted_media, name="add_wanted_media"),
 ]
