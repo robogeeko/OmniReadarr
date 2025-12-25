@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Library{% endblock %}
+
+{% block content %}
+<h1>Library</h1>
+
+<div class="module">
+    <h2>Statistics</h2>
+    <p><strong>Total Books:</strong> {{ total_books }}</p>
+    <p><strong>Total Audiobooks:</strong> {{ total_audiobooks }}</p>
+</div>
+
+{% if books %}
+<div class="module">
+    <h2>Recent Books ({{ books|length }})</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Authors</th>
+                <th>Series</th>
+                <th>Status</th>
+                <th>Added Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in books %}
+            <tr>
+                <td><strong>{{ book.title }}</strong></td>
+                <td>{{ book.authors|join:", " }}</td>
+                <td>
+                    {% if book.series %}
+                        {{ book.series }}{% if book.series_index %} #{{ book.series_index }}{% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ book.get_status_display }}</td>
+                <td>{{ book.added_date|date:"Y-m-d" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if audiobooks %}
+<div class="module">
+    <h2>Recent Audiobooks ({{ audiobooks|length }})</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Authors</th>
+                <th>Narrators</th>
+                <th>Series</th>
+                <th>Status</th>
+                <th>Added Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for audiobook in audiobooks %}
+            <tr>
+                <td><strong>{{ audiobook.title }}</strong></td>
+                <td>{{ audiobook.authors|join:", " }}</td>
+                <td>{{ audiobook.narrators|join:", "|default:"-" }}</td>
+                <td>
+                    {% if audiobook.series %}
+                        {{ audiobook.series }}{% if audiobook.series_index %} #{{ audiobook.series_index }}{% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ audiobook.get_status_display }}</td>
+                <td>{{ audiobook.added_date|date:"Y-m-d" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if not books and not audiobooks %}
+<div class="module">
+    <p>No media in library yet. <a href="{% url 'search:search' %}">Search for books</a> to add them to your library.</p>
+</div>
+{% endif %}
+{% endblock %}
+

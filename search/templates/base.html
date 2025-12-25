@@ -110,11 +110,54 @@
             border-radius: 4px;
             border: 1px solid #ffeaa7;
         }
+        .navbar {
+            background-color: #417690;
+            color: white;
+            padding: 15px 20px;
+            margin: -20px -20px 20px -20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .navbar-brand {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+        .navbar-brand:hover {
+            color: #e8f4f8;
+        }
+        .navbar-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .navbar-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .navbar-links a:hover {
+            background-color: #345f75;
+        }
+        .navbar-links a.active {
+            background-color: #205067;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <h1>OmniReadarr</h1>
+    <nav class="navbar">
+        <a href="{% url 'search:search' %}" class="navbar-brand">OmniReadarr</a>
+        <div class="navbar-links">
+            <a href="{% url 'search:search' %}" {% if request.resolver_match.url_name == 'search' %}class="active"{% endif %}>Search</a>
+            <a href="{% url 'media:library' %}" {% if request.resolver_match.url_name == 'library' %}class="active"{% endif %}>Library</a>
+        </div>
+    </nav>
     
     {% if messages %}
     <div class="messages">
