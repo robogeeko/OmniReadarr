@@ -21,7 +21,9 @@ class MediaStatus(models.TextChoices):
     WANTED = "wanted", "Wanted"
     SEARCHING = "searching", "Searching"
     DOWNLOADING = "downloading", "Downloading"
-    IMPORTED = "imported", "Imported"
+    DOWNLOADED = "downloaded", "Downloaded"
+    POST_PROCESSED_FAILED = "post_processed_failed", "Post-Processed Failed"
+    POST_PROCESSED_SUCCESS = "post_processed_success", "Post-Processed Success"
     ARCHIVED = "archived", "Archived"
 
 
