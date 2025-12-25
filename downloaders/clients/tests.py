@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
@@ -429,3 +429,119 @@ class TestJobStatus:
         assert status.status == "Completed"
         assert status.progress == 100.0
         assert status.path == "/downloads/test"
+
+
+class TestSABnzbdClientAddDownload:
+    def test_add_download_success(self, client):
+        with patch("httpx.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {
+                "status": True,
+                "nzo_ids": ["SABnzbd_nzo_abc123"],
+            }
+            mock_response.raise_for_status = lambda: None
+            mock_get.return_value = mock_response
+
+            result = client.add_download("https://example.com/file.nzb")
+
+            assert result["status"] is True
+            assert result["nzo_id"] == "SABnzbd_nzo_abc123"
+            mock_get.assert_called_once()
+            call_args = mock_get.call_args
+            assert call_args.kwargs["params"]["mode"] == "addurl"
+            assert call_args.kwargs["params"]["name"] == "https://example.com/file.nzb"
+
+    def test_add_download_with_category(self, client):
+        with patch("httpx.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {
+                "status": True,
+                "nzo_ids": ["SABnzbd_nzo_abc123"],
+            }
+            mock_response.raise_for_status = lambda: None
+            mock_get.return_value = mock_response
+
+            result = client.add_download(
+                "https://example.com/file.nzb", category="books"
+            )
+
+            assert result["status"] is True
+            assert result["nzo_id"] == "SABnzbd_nzo_abc123"
+            call_args = mock_get.call_args
+            assert call_args.kwargs["params"]["cat"] == "books"
+
+    def test_add_download_with_priority(self, client):
+        with patch("httpx.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {
+                "status": True,
+                "nzo_ids": ["SABnzbd_nzo_abc123"],
+            }
+            mock_response.raise_for_status = lambda: None
+            mock_get.return_value = mock_response
+
+            result = client.add_download(
+                "https://example.com/file.nzb", priority="High"
+            )
+
+            assert result["status"] is True
+            call_args = mock_get.call_args
+            assert call_args.kwargs["params"]["priority"] == "High"
+
+    def test_add_download_invalid_url(self, client):
+        with pytest.raises(SABnzbdClientError, match="Download URL cannot be empty"):
+            client.add_download("")
+
+        with pytest.raises(SABnzbdClientError, match="Download URL cannot be empty"):
+            client.add_download("   ")
+
+    def test_add_download_api_error(self, client):
+        with patch("httpx.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {
+                "status": False,
+                "error": "Invalid URL",
+            }
+            mock_response.raise_for_status = lambda: None
+            mock_get.return_value = mock_response
+
+            with pytest.raises(SABnzbdClientError, match="SABnzbd API error"):
+                client.add_download("https://example.com/file.nzb")
+
+    def test_add_download_no_nzo_id(self, client):
+        with patch("httpx.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {"status": True, "nzo_ids": []}
+            mock_response.raise_for_status = lambda: None
+            mock_get.return_value = mock_response
+
+            with pytest.raises(
+                SABnzbdClientError, match="SABnzbd did not return a job ID"
+            ):
+                client.add_download("https://example.com/file.nzb")
+
+    def test_add_download_authentication_error(self, client):
+        with patch("httpx.get") as mock_get:
+            mock_request = MagicMock()
+            mock_response = MagicMock()
+            mock_response.status_code = 401
+            mock_response.text = "Unauthorized"
+            mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+                "Unauthorized", request=mock_request, response=mock_response
+            )
+            mock_get.return_value = mock_response
+
+            with pytest.raises(SABnzbdClientError, match="Authentication failed"):
+                client.add_download("https://example.com/file.nzb")
+
+    def test_add_download_timeout(self, client):
+        with patch("httpx.get") as mock_get:
+            mock_get.side_effect = httpx.TimeoutException("Request timeout")
+
+            with pytest.raises(SABnzbdClientError, match="Request timeout"):
+                client.add_download("https://example.com/file.nzb")

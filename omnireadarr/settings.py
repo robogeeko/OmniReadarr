@@ -141,6 +141,11 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "downloaders.services.download": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         "indexers.prowlarr.client": {
             "handlers": ["console"],
             "level": "INFO",

@@ -454,6 +454,7 @@ function displaySearchResults(results) {
     
     results.forEach(result => {
         const sizeMB = result.size ? (result.size / 1024 / 1024).toFixed(2) + " MB" : "-";
+        const resultData = JSON.stringify(result).replace(/"/g, '&quot;');
         html += `
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 10px;">${escapeHtml(result.title)}</td>
@@ -464,6 +465,7 @@ function displaySearchResults(results) {
                     <button class="download-btn button" 
                             data-indexer-id="${result.indexer_id}" 
                             data-guid="${escapeHtml(result.guid)}"
+                            data-result='${resultData}'
                             style="background-color: #417690; color: white; border: 1px solid #417690; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
                         Download
                     </button>
@@ -492,6 +494,8 @@ async function initiateDownload(indexerId, guid, btn) {
     btn.disabled = true;
     btn.textContent = "Initiating...";
     
+    const resultData = btn.dataset.result ? JSON.parse(btn.dataset.result) : null;
+    
     try {
         const response = await fetch("/api/downloads/initiate/", {
             method: "POST",
@@ -502,7 +506,8 @@ async function initiateDownload(indexerId, guid, btn) {
             body: JSON.stringify({
                 media_id: mediaId,
                 indexer_id: parseInt(indexerId),
-                guid: guid
+                guid: guid,
+                result: resultData
             })
         });
         

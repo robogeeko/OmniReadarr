@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import logging
 import os
+from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
 from django.contrib.contenttypes.models import ContentType
@@ -16,6 +18,8 @@ from downloaders.models import (
 )
 from indexers.prowlarr.client import ProwlarrClient
 from indexers.prowlarr.results import SearchResult
+
+logger = logging.getLogger(__name__)
 
 
 class DownloadServiceError(Exception):
@@ -34,6 +38,13 @@ class DownloadService:
         self.sabnzbd_client_factory = sabnzbd_client_factory or SABnzbdClient
 
     def initiate_download(self, media: Media, result: SearchResult) -> DownloadAttempt:
+        logger.info("=== DOWNLOAD ATTEMPT DEBUG ===")
+        logger.info(f"result.download_url: {result.download_url}")
+        logger.info(f"result.guid: {result.guid}")
+        logger.info(f"result.indexer: {result.indexer}")
+        logger.info(f"result.indexer_id: {result.indexer_id}")
+        logger.info(f"result.protocol: {result.protocol}")
+        logger.info("=== END DEBUG ===")
         content_type = ContentType.objects.get_for_model(media)
 
         active_attempts = DownloadAttempt.objects.filter(
@@ -76,15 +87,92 @@ class DownloadService:
         )
 
         try:
-            download_response = self.prowlarr_client.send_to_download_client(
-                indexer_id=result.indexer_id, guid=result.guid
+            if not result.download_url or not result.download_url.strip():
+                raise DownloadServiceError("Download URL is missing from search result")
+
+            if result.protocol != "usenet":
+                raise DownloadServiceError(
+                    f"SABnzbd only supports Usenet downloads (protocol: {result.protocol})"
+                )
+
+            if not result.download_url.startswith(("http://", "https://")):
+                raise DownloadServiceError(
+                    f"Invalid download URL format: {result.download_url}"
+                )
+
+            logger.info(
+                f"Initiating download for media {media.id} - "
+                f"indexer={result.indexer}, indexer_id={result.indexer_id}, "
+                f"guid={result.guid}, download_url={result.download_url}, protocol={result.protocol}"
             )
 
-            attempt.status = DownloadAttemptStatus.SENT
-            if download_response.get("download_client_id"):
-                attempt.download_client_download_id = download_response[
-                    "download_client_id"
-                ]
+            if result.download_url.startswith(
+                ("http://", "https://")
+            ) and not result.download_url.startswith(
+                ("http://localhost", "https://localhost")
+            ):
+                logger.info(
+                    f"Using download URL directly from search result: {result.download_url}"
+                )
+                actual_download_url = result.download_url
+            elif result.guid.startswith(("http://", "https://")):
+                guid_url = result.guid
+                parsed = urlparse(guid_url)
+                params = parse_qs(parsed.query)
+                guid_value = params.get("guid", [None])[0]
+
+                if guid_value and "nzbgeek.info" in parsed.netloc:
+                    api_url = f"https://nzbgeek.info/api?t=get&id={guid_value}"
+                    logger.info(
+                        f"GUID URL appears to be NZBgeek info page ({guid_url}). "
+                        f"Extracted GUID: {guid_value}. "
+                        f"Constructing API download URL: {api_url}"
+                    )
+                    actual_download_url = api_url
+                else:
+                    logger.info(
+                        f"Download URL is a Prowlarr proxy URL ({result.download_url}), "
+                        f"but GUID is a valid URL. Using GUID as download URL: {result.guid}"
+                    )
+                    actual_download_url = result.guid
+            else:
+                logger.info(
+                    "Download URL appears to be a Prowlarr proxy URL, fetching actual URL"
+                )
+                try:
+                    actual_download_url = self.prowlarr_client.get_download_url(
+                        indexer_id=result.indexer_id, guid=result.guid
+                    )
+                    logger.info(
+                        f"Got actual download URL from Prowlarr: {actual_download_url}"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to get download URL from Prowlarr: {str(e)}. "
+                        f"Trying to use guid as fallback: {result.guid}"
+                    )
+                    if result.guid.startswith(("http://", "https://")):
+                        actual_download_url = result.guid
+                        logger.info(
+                            f"Using GUID as download URL: {actual_download_url}"
+                        )
+                    else:
+                        raise DownloadServiceError(
+                            f"Cannot determine download URL. download_url={result.download_url}, guid={result.guid}, error={str(e)}"
+                        )
+
+            actual_download_url = self._resolve_download_url(result)
+
+            sabnzbd_client = self.sabnzbd_client_factory(download_client_config)
+            download_response = sabnzbd_client.add_download(
+                url=actual_download_url,
+                category="books",
+                name=media.title,
+            )
+
+            attempt.status = DownloadAttemptStatus.DOWNLOADING
+            if download_response.get("nzo_id"):
+                attempt.download_client_download_id = download_response["nzo_id"]
             attempt.save()
 
             media.status = MediaStatus.DOWNLOADING
@@ -93,10 +181,60 @@ class DownloadService:
             return attempt
         except Exception as e:
             attempt.status = DownloadAttemptStatus.FAILED
-            attempt.error_type = "prowlarr_error"
+            attempt.error_type = "sabnzbd_error"
             attempt.error_reason = str(e)
             attempt.save()
             raise DownloadServiceError(f"Failed to initiate download: {str(e)}")
+
+    def _resolve_download_url(self, result: SearchResult) -> str:
+        """
+        Get the actual download URL from a search result.
+        """
+        download_url = result.download_url.strip()
+
+        if not download_url:
+            raise DownloadServiceError("Download URL is missing from search result")
+
+        logger.info(f"Raw download_url: {download_url}")
+
+        if "localhost" in download_url or "127.0.0.1" in download_url:
+            download_url = download_url.replace("localhost", "prowlarr")
+            download_url = download_url.replace("127.0.0.1", "prowlarr")
+            logger.info(f"Replaced localhost with prowlarr hostname: {download_url}")
+
+        # Just use the download_url directly - it's already the correct Prowlarr proxy URL
+        # with all the necessary authentication and tokens
+        logger.info(f"✓ Using download URL from search result: {download_url}")
+        return download_url
+
+    def _is_direct_indexer_url(self, url: str) -> bool:
+        """Check if URL is a direct indexer URL (not a Prowlarr proxy)."""
+        if not url.startswith(("http://", "https://")):
+            return False
+
+        # Check if it's actually an indexer URL (contains common indexer domains or patterns)
+        indexer_patterns = [
+            "nzbgeek.info",
+            "nzbgeek.com",
+            "api.nzb",
+            "/api?t=get",
+            "&apikey=",
+        ]
+
+        if any(pattern in url for pattern in indexer_patterns):
+            return True
+
+        # Prowlarr proxy URLs contain the Prowlarr host
+        prowlarr_host = self.prowlarr_client.config.host
+        if prowlarr_host in url and "/api/v1" in url:
+            return False
+
+        # localhost URLs with Prowlarr's port are proxies
+        if ("localhost" in url or "127.0.0.1" in url) and ":9696" in url:
+            return False
+
+        # If we can't determine, assume it's direct
+        return True
 
     def get_download_status(self, attempt_id: UUID) -> DownloadAttempt:
         try:

@@ -134,6 +134,7 @@ class TestProwlarrClientSearch:
                     "protocol": "torrent",
                     "downloadUrl": "magnet:?xt=urn:btih:...",
                     "infoUrl": "https://example.com",
+                    "categories": [{"id": 7020}],
                 }
             ],
         )
@@ -157,8 +158,10 @@ class TestProwlarrClientSearch:
 
         call_args = mock_get.call_args
         assert call_args[0][0] == "http://localhost:9696/api/v1/search"
-        assert call_args[1]["params"]["q"] == "test query"
-        assert call_args[1]["params"]["limit"] == 50
+        params_list = call_args[1]["params"]
+        params_dict = dict(params_list)
+        assert params_dict["query"] == "test query"
+        assert params_dict["limit"] == 50
 
     @patch("httpx.get")
     def test_search_with_all_params(self, mock_get, client):
@@ -178,14 +181,15 @@ class TestProwlarrClientSearch:
         )
 
         call_args = mock_get.call_args
-        params = call_args[1]["params"]
-        assert params["q"] == "test"
-        assert params["cat"] == 7000
-        assert params["indexer"] == "TestIndexer"
-        assert params["limit"] == 25
-        assert params["offset"] == 10
-        assert params["sortkey"] == "seeders"
-        assert params["sortdir"] == "asc"
+        params_list = call_args[1]["params"]
+        params_dict = dict(params_list)
+        assert params_dict["query"] == "test"
+        assert ("categories", 7000) in params_list
+        assert params_dict["indexer"] == "TestIndexer"
+        assert params_dict["limit"] == 25
+        assert params_dict["offset"] == 10
+        assert params_dict["sortkey"] == "seeders"
+        assert params_dict["sortdir"] == "asc"
 
     @patch("httpx.get")
     def test_search_without_category(self, mock_get, client):
@@ -205,7 +209,13 @@ class TestProwlarrClientSearch:
         mock_response = httpx.Response(
             200,
             json=[
-                {"guid": "valid", "title": "Valid", "indexer": "Test", "indexerId": 1},
+                {
+                    "guid": "valid",
+                    "title": "Valid",
+                    "indexer": "Test",
+                    "indexerId": 1,
+                    "categories": [{"id": 7020}],
+                },
                 {"invalid": "data"},
             ],
         )
@@ -476,7 +486,7 @@ class TestProwlarrClientSendToDownloadClient:
             "Error", request=mock_request, response=mock_response
         )
 
-        with pytest.raises(ProwlarrClientError, match="HTTP error 500"):
+        with pytest.raises(ProwlarrClientError, match="Prowlarr server error"):
             client.send_to_download_client(indexer_id=1, guid="test-guid-123")
 
 

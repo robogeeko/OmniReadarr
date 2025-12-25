@@ -50,7 +50,9 @@ class SABnzbdClient:
             response.raise_for_status()
             data = response.json()
 
-            if data.get("status") is False:
+            # SABnzbd returns {"status": false, "error": "message"} on error
+            # But also returns {"status": true} on success
+            if isinstance(data.get("status"), bool) and not data.get("status"):
                 error_msg = data.get("error", "Unknown error")
                 raise SABnzbdClientError(f"SABnzbd API error: {error_msg}")
 
@@ -122,3 +124,41 @@ class SABnzbdClient:
                 return JobStatus.from_history_item(item)
 
         return None
+
+    def add_download(
+        self,
+        url: str,
+        category: str | None = None,
+        priority: str | None = None,
+        name: str | None = None,  # Add this parameter
+    ) -> dict:
+        if not url or not url.strip():
+            raise SABnzbdClientError("Download URL cannot be empty")
+
+        params: dict[str, str] = {
+            "name": url.strip(),  # This is the NZB URL
+        }
+
+        if category:
+            params["cat"] = category
+        if priority:
+            params["priority"] = priority
+        if name:
+            params["nzbname"] = name  # Set a friendly name for the download
+
+        try:
+            data = self._make_request("addurl", params)
+            nzo_ids = data.get("nzo_ids", [])
+
+            if not nzo_ids:
+                raise SABnzbdClientError("SABnzbd did not return a job ID")
+
+            return {
+                "status": True,
+                "nzo_id": nzo_ids[0],
+                "message": data.get("status", ""),
+            }
+        except SABnzbdClientError:
+            raise
+        except Exception as e:
+            raise SABnzbdClientError(f"Failed to add download: {str(e)}")

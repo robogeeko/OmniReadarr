@@ -71,8 +71,23 @@ class SearchService:
         return sorted_results[:50]
 
     def _build_search_queries(self, media: Media) -> list[tuple[str, int]]:
+        queries: list[tuple[str, int]] = []
         title = media.title.strip()
-        return [(title, 0)]
+        authors = [a.strip() for a in media.authors if a.strip()]
+
+        if authors:
+            author_str = " ".join(authors)
+            queries.append((f"{title} {author_str}", 1))
+            queries.append((f"{author_str} {title}", 2))
+
+        queries.append((title, 3))
+
+        if hasattr(media, "isbn") and media.isbn:
+            queries.append((str(media.isbn), 0))
+        if hasattr(media, "isbn13") and media.isbn13:
+            queries.append((str(media.isbn13), 0))
+
+        return queries
 
     def _deduplicate_results(
         self, results: list[tuple[SearchResult, int]]

@@ -83,17 +83,61 @@ def initiate_download(request):
         return JsonResponse({"error": "Media not found"}, status=404)
 
     try:
-        search_service = SearchService()
-        search_results = search_service.search_for_media(media)
+        import logging
 
-        matching_result = None
-        for result in search_results:
-            if result.guid == guid and result.indexer_id == indexer_id:
-                matching_result = result
-                break
+        api_logger = logging.getLogger(__name__)
+        api_logger.info("=== API INITIATE DOWNLOAD DEBUG ===")
+        api_logger.info(f"media_id: {media_id}, indexer_id: {indexer_id}, guid: {guid}")
 
-        if not matching_result:
-            return JsonResponse({"error": "Search result not found"}, status=404)
+        result_data = data.get("result")
+        if result_data:
+            from indexers.prowlarr.results import SearchResult
+            from datetime import datetime
+
+            publish_date = None
+            if result_data.get("publish_date"):
+                try:
+                    publish_date = datetime.fromisoformat(
+                        result_data["publish_date"].replace("Z", "+00:00")
+                    )
+                except (ValueError, AttributeError):
+                    pass
+
+            matching_result = SearchResult(
+                guid=result_data.get("guid", guid),
+                title=result_data.get("title", ""),
+                indexer=result_data.get("indexer", ""),
+                indexer_id=result_data.get("indexer_id", indexer_id),
+                size=result_data.get("size"),
+                publish_date=publish_date,
+                seeders=result_data.get("seeders"),
+                peers=result_data.get("peers"),
+                protocol=result_data.get("protocol", "usenet"),
+                download_url=result_data.get("download_url", ""),
+                info_url=result_data.get("info_url"),
+            )
+            api_logger.info(
+                f"Constructed SearchResult from request data: {matching_result.title}"
+            )
+        else:
+            api_logger.warning(
+                "No result data in request, falling back to search (slow). "
+                "Consider updating frontend to pass full result data."
+            )
+            search_service = SearchService()
+            search_results = search_service.search_for_media(media)
+
+            matching_result = None
+            for result in search_results:
+                if result.guid == guid and result.indexer_id == indexer_id:
+                    matching_result = result
+                    break
+
+            if not matching_result:
+                api_logger.warning(
+                    f"No matching result found. guid={guid}, indexer_id={indexer_id}"
+                )
+                return JsonResponse({"error": "Search result not found"}, status=404)
 
         download_service = DownloadService()
         attempt = download_service.initiate_download(media, matching_result)
