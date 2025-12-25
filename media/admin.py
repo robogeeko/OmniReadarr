@@ -122,7 +122,7 @@ class BookAdmin(admin.ModelAdmin):
     def authors_display(self, obj: Book) -> str:
         return ", ".join(obj.authors) if obj.authors else "-"
 
-    authors_display.short_description = "Authors"
+    authors_display.short_description = "Authors"  # type: ignore[attr-defined]
 
 
 @admin.register(Audiobook)
@@ -248,12 +248,12 @@ class AudiobookAdmin(admin.ModelAdmin):
     def authors_display(self, obj: Audiobook) -> str:
         return ", ".join(obj.authors) if obj.authors else "-"
 
-    authors_display.short_description = "Authors"
+    authors_display.short_description = "Authors"  # type: ignore[attr-defined]
 
     def narrators_display(self, obj: Audiobook) -> str:
         return ", ".join(obj.narrators) if obj.narrators else "-"
 
-    narrators_display.short_description = "Narrators"
+    narrators_display.short_description = "Narrators"  # type: ignore[attr-defined]
 
     def duration_display(self, obj: Audiobook) -> str:
         if not obj.duration_seconds:
@@ -268,4 +268,4 @@ class AudiobookAdmin(admin.ModelAdmin):
         else:
             return f"{seconds}s"
 
-    duration_display.short_description = "Duration"
+    duration_display.short_description = "Duration"  # type: ignore[attr-defined]

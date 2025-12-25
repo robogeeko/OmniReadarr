@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import logging
+
 import httpx
 
 from indexers.models import ProwlarrConfiguration
 from indexers.prowlarr.results import IndexerInfo, SearchResult
+
+logger = logging.getLogger(__name__)
 
 
 class ProwlarrClientError(Exception):
@@ -45,7 +49,7 @@ class ProwlarrClient:
     def search(
         self,
         query: str,
-        category: int | None = 7000,
+        category: int | list[int] | None = None,
         indexer: str | None = None,
         limit: int = 50,
         offset: int = 0,
@@ -53,14 +57,12 @@ class ProwlarrClient:
         sort_dir: str = "desc",
     ) -> list[SearchResult]:
         params: dict[str, str | int] = {
-            "q": query,
+            "query": query,
             "limit": limit,
             "offset": offset,
             "sortdir": sort_dir,
         }
 
-        if category:
-            params["cat"] = category
         if indexer:
             params["indexer"] = indexer
         if sort_key:
@@ -68,22 +70,79 @@ class ProwlarrClient:
 
         try:
             url = f"{self.base_url}/api/v1/search"
+            logger.info(
+                f"Prowlarr search request - Query: '{query}', Category: {category}, Limit: {limit}, Params: {params}"
+            )
+            category_list = []
+            if category:
+                if isinstance(category, list):
+                    category_list = category
+                else:
+                    category_list = [category]
+
+            params_with_categories = []
+
+            for key, value in params.items():
+                params_with_categories.append((key, value))
+            for cat in category_list:
+                params_with_categories.append(("categories", cat))
             response = httpx.get(
                 url,
                 headers=self.headers,
-                params=params,
+                params=params_with_categories,
                 timeout=self.config.timeout,
             )
             response.raise_for_status()
+            actual_url = str(response.request.url)
+            logger.info(
+                f"Prowlarr search response - Status: {response.status_code}, "
+                f"Actual URL: {actual_url}"
+            )
+            logger.info(f"Prowlarr request headers: {dict(response.request.headers)}")
             data = response.json()
+            logger.info(
+                f"Prowlarr search response - Results count: {len(data) if isinstance(data, list) else 'N/A'}"
+            )
+            if isinstance(data, list) and len(data) > 0:
+                logger.info("First 5 results:")
+                for i, result in enumerate(data[:5], 1):
+                    logger.info(
+                        f"  {i}. Title: {result.get('title', 'N/A')}, "
+                        f"Indexer: {result.get('indexer', 'N/A')}, "
+                        f"Categories: {result.get('categories', 'N/A')}, "
+                        f"Protocol: {result.get('protocol', 'N/A')}"
+                    )
 
             results = []
             for item in data:
                 try:
+                    categories = item.get("categories", [])
+                    category_ids = []
+                    for cat in categories:
+                        if isinstance(cat, dict):
+                            cat_id = cat.get("id")
+                            if cat_id:
+                                category_ids.append(cat_id)
+                        elif isinstance(cat, int):
+                            category_ids.append(cat)
+
+                    is_valid = False
+                    for cat_id in category_ids:
+                        if (cat_id >= 7000 and cat_id < 8000) or cat_id == 3030:
+                            is_valid = True
+                            break
+
+                    if not is_valid:
+                        continue
+
                     results.append(SearchResult.from_dict(item))
                 except (KeyError, ValueError):
                     continue
 
+            logger.info(
+                f"Filtered to {len(results)} results (categories 7000-7999 or 3030) "
+                f"out of {len(data)} total results"
+            )
             return results
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 401:

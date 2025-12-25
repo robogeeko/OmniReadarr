@@ -18,6 +18,7 @@ test:
 
 lint:
 	uv run ruff check .
+	uv run ty check .
 
 run:
 	docker compose up --build

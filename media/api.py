@@ -227,7 +227,7 @@ def add_wanted_media(request):
                 "success": True,
                 "media_id": str(book.id),
                 "status": book.status,
-                "status_display": book.get_status_display(),
+                "status_display": book.get_status_display(),  # type: ignore[attr-defined]
             }
         )
 
@@ -278,7 +278,7 @@ def add_wanted_media(request):
                 "success": True,
                 "media_id": str(audiobook.id),
                 "status": audiobook.status,
-                "status_display": audiobook.get_status_display(),
+                "status_display": audiobook.get_status_display(),  # type: ignore[attr-defined]
             }
         )
 

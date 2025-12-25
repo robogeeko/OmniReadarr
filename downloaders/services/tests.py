@@ -65,6 +65,24 @@ class TestSearchServiceInit:
             assert service.prowlarr_client == mock_client
 
 
+class TestSearchServiceGetCategory:
+    def test_get_category_for_book(self, search_service, book):
+        category = search_service._get_category_for_media(book)
+        assert category == 7020
+
+    def test_get_category_for_audiobook(self, search_service, audiobook):
+        category = search_service._get_category_for_media(audiobook)
+        assert category == 3030
+
+    def test_get_category_for_invalid_media_type(self, search_service):
+        class InvalidMedia:
+            pass
+
+        invalid_media = InvalidMedia()
+        with pytest.raises(Exception, match="Invalid media type"):
+            search_service._get_category_for_media(invalid_media)
+
+
 class TestSearchServiceBuildQueries:
     def test_build_queries_with_title_and_author(self, search_service, book):
         queries = search_service._build_search_queries(book)
@@ -306,6 +324,41 @@ class TestSearchServiceSearchForMedia:
 
         assert len(results) > 0
         assert mock_client.search.called
+        mock_client.search.assert_called_with(
+            query="Test Book",
+            category=7020,
+            limit=50,
+        )
+
+    @patch("downloaders.services.search.ProwlarrClient")
+    def test_search_for_media_uses_correct_category_for_book(self, mock_client_class, book):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.search.return_value = []
+
+        service = SearchService()
+        service.search_for_media(book)
+
+        mock_client.search.assert_called_with(
+            query="Test Book",
+            category=7020,
+            limit=50,
+        )
+
+    @patch("downloaders.services.search.ProwlarrClient")
+    def test_search_for_media_uses_correct_category_for_audiobook(self, mock_client_class, audiobook):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.search.return_value = []
+
+        service = SearchService()
+        service.search_for_media(audiobook)
+
+        mock_client.search.assert_called_with(
+            query="Test Audiobook",
+            category=3030,
+            limit=50,
+        )
 
     @patch("downloaders.services.search.ProwlarrClient")
     def test_search_for_media_limits_to_50(self, mock_client_class, book):

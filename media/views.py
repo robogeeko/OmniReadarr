@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from django.contrib.contenttypes.models import ContentType
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 
+from downloaders.models import DownloadAttempt
 from media.models import Audiobook, Book
 
 
@@ -27,14 +29,24 @@ def media_detail_view(request, media_id: str, media_type: str):
         raise Http404("Invalid media type")
 
     duration_formatted = None
-    if media_type == "audiobook" and media.duration_seconds:
-        duration_formatted = format_duration(media.duration_seconds)
+    if (
+        media_type == "audiobook"
+        and hasattr(media, "duration_seconds")
+        and media.duration_seconds
+    ):
+        duration_formatted = format_duration(media.duration_seconds)  # type: ignore[arg-type]
+
+    content_type = ContentType.objects.get_for_model(media)
+    download_attempts = DownloadAttempt.objects.filter(
+        content_type=content_type, object_id=media.id
+    ).order_by("-attempted_at")
 
     context = {
         "media": media,
         "media_type": media_type,
         "media_type_display": "Book" if media_type == "book" else "Audiobook",
         "duration_formatted": duration_formatted,
+        "download_attempts": download_attempts,
     }
 
     return render(request, "media/detail.html", context)

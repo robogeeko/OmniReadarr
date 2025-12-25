@@ -103,7 +103,7 @@ def initiate_download(request):
                 "success": True,
                 "attempt_id": str(attempt.id),
                 "status": attempt.status,
-                "status_display": attempt.get_status_display(),
+                "status_display": attempt.get_status_display(),  # type: ignore[attr-defined]
             }
         )
     except DownloadServiceError as e:
@@ -172,7 +172,7 @@ def get_download_status(request, attempt_id: UUID):
         return JsonResponse(
             {
                 "status": attempt.status,
-                "status_display": attempt.get_status_display(),
+                "status_display": attempt.get_status_display(),  # type: ignore[attr-defined]
                 "progress": progress,
                 "error": attempt.error_reason if attempt.error_type else None,
             }

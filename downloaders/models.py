@@ -32,7 +32,7 @@ class DownloadClientConfiguration(BaseModel):
         ordering = ["priority", "name"]
 
     def __str__(self) -> str:
-        return f"{self.name} ({self.get_client_type_display()})"
+        return f"{self.name} ({self.get_client_type_display()})"  # type: ignore[attr-defined]
 
 
 class DownloadAttemptStatus(models.TextChoices):
@@ -115,7 +115,7 @@ class DownloadAttempt(BaseModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.release_title} ({self.get_status_display()})"
+        return f"{self.release_title} ({self.get_status_display()})"  # type: ignore[attr-defined]
 
 
 class DownloadBlacklist(BaseModel):
@@ -154,4 +154,4 @@ class DownloadBlacklist(BaseModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.release_title} ({self.get_reason_display()})"
+        return f"{self.release_title} ({self.get_reason_display()})"  # type: ignore[attr-defined]

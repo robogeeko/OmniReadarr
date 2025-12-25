@@ -54,7 +54,9 @@ class TestProwlarrClientInit:
             api_key="key",
             enabled=False,
         )
-        with pytest.raises(ProwlarrClientError, match="No enabled Prowlarr configuration"):
+        with pytest.raises(
+            ProwlarrClientError, match="No enabled Prowlarr configuration"
+        ):
             ProwlarrClient()
 
     def test_build_base_url_with_ssl(self, prowlarr_config):
@@ -81,7 +83,7 @@ class TestProwlarrClientTestConnection:
     def test_test_connection_success(self, mock_get, client):
         mock_response = httpx.Response(200, json={"version": "1.0.0"})
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         result = client.test_connection()
@@ -95,7 +97,11 @@ class TestProwlarrClientTestConnection:
 
     @patch("httpx.get")
     def test_test_connection_failure(self, mock_get, client):
-        mock_get.side_effect = httpx.HTTPStatusError("Error", request=None, response=None)
+        mock_request = httpx.Request("GET", "http://test.com")
+        mock_response = httpx.Response(500, text="Error")
+        mock_get.side_effect = httpx.HTTPStatusError(
+            "Error", request=mock_request, response=mock_response
+        )
 
         result = client.test_connection()
 
@@ -132,7 +138,7 @@ class TestProwlarrClientSearch:
             ],
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         results = client.search("test query")
@@ -158,7 +164,7 @@ class TestProwlarrClientSearch:
     def test_search_with_all_params(self, mock_get, client):
         mock_response = httpx.Response(200, json=[])
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         client.search(
@@ -185,7 +191,7 @@ class TestProwlarrClientSearch:
     def test_search_without_category(self, mock_get, client):
         mock_response = httpx.Response(200, json=[])
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         client.search(query="test", category=None)
@@ -204,7 +210,7 @@ class TestProwlarrClientSearch:
             ],
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         results = client.search("test")
@@ -214,8 +220,11 @@ class TestProwlarrClientSearch:
 
     @patch("httpx.get")
     def test_search_authentication_error(self, mock_get, client):
+        mock_request = httpx.Request("GET", "http://test.com")
         mock_response = httpx.Response(401, text="Unauthorized")
-        mock_get.side_effect = httpx.HTTPStatusError("Unauthorized", request=None, response=mock_response)
+        mock_get.side_effect = httpx.HTTPStatusError(
+            "Unauthorized", request=mock_request, response=mock_response
+        )
 
         with pytest.raises(ProwlarrClientError, match="Authentication failed"):
             client.search("test")
@@ -229,8 +238,11 @@ class TestProwlarrClientSearch:
 
     @patch("httpx.get")
     def test_search_http_error(self, mock_get, client):
+        mock_request = httpx.Request("GET", "http://test.com")
         mock_response = httpx.Response(500, text="Internal Server Error")
-        mock_get.side_effect = httpx.HTTPStatusError("Error", request=None, response=mock_response)
+        mock_get.side_effect = httpx.HTTPStatusError(
+            "Error", request=mock_request, response=mock_response
+        )
 
         with pytest.raises(ProwlarrClientError, match="HTTP error 500"):
             client.search("test")
@@ -256,7 +268,7 @@ class TestProwlarrClientGetIndexers:
             ],
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         indexers = client.get_indexers()
@@ -291,7 +303,7 @@ class TestProwlarrClientGetIndexers:
             ],
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         indexers = client.get_indexers()
@@ -301,8 +313,11 @@ class TestProwlarrClientGetIndexers:
 
     @patch("httpx.get")
     def test_get_indexers_authentication_error(self, mock_get, client):
+        mock_request = httpx.Request("GET", "http://test.com")
         mock_response = httpx.Response(401, text="Unauthorized")
-        mock_get.side_effect = httpx.HTTPStatusError("Unauthorized", request=None, response=mock_response)
+        mock_get.side_effect = httpx.HTTPStatusError(
+            "Unauthorized", request=mock_request, response=mock_response
+        )
 
         with pytest.raises(ProwlarrClientError, match="Authentication failed"):
             client.get_indexers()
@@ -337,7 +352,7 @@ class TestProwlarrClientGetIndexerCapabilities:
             ],
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         indexer = client.get_indexer_capabilities(2)
@@ -364,7 +379,7 @@ class TestProwlarrClientGetIndexerCapabilities:
             ],
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         indexer = client.get_indexer_capabilities(999)
@@ -385,7 +400,7 @@ class TestProwlarrClientSendToDownloadClient:
             },
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_post.return_value = mock_response
 
         result = client.send_to_download_client(indexer_id=1, guid="test-guid-123")
@@ -414,7 +429,7 @@ class TestProwlarrClientSendToDownloadClient:
             },
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_post.return_value = mock_response
 
         result = client.send_to_download_client(indexer_id=1, guid="test-guid-123")
@@ -426,9 +441,10 @@ class TestProwlarrClientSendToDownloadClient:
 
     @patch("httpx.post")
     def test_send_to_download_client_authentication_error(self, mock_post, client):
+        mock_request = httpx.Request("POST", "http://test.com")
         mock_response = httpx.Response(401, text="Unauthorized")
         mock_post.side_effect = httpx.HTTPStatusError(
-            "Unauthorized", request=None, response=mock_response
+            "Unauthorized", request=mock_request, response=mock_response
         )
 
         with pytest.raises(ProwlarrClientError, match="Authentication failed"):
@@ -436,14 +452,13 @@ class TestProwlarrClientSendToDownloadClient:
 
     @patch("httpx.post")
     def test_send_to_download_client_not_found(self, mock_post, client):
+        mock_request = httpx.Request("POST", "http://test.com")
         mock_response = httpx.Response(404, text="Not Found")
         mock_post.side_effect = httpx.HTTPStatusError(
-            "Not Found", request=None, response=mock_response
+            "Not Found", request=mock_request, response=mock_response
         )
 
-        with pytest.raises(
-            ProwlarrClientError, match="Release not found"
-        ):
+        with pytest.raises(ProwlarrClientError, match="Release not found"):
             client.send_to_download_client(indexer_id=1, guid="invalid-guid")
 
     @patch("httpx.post")
@@ -455,9 +470,10 @@ class TestProwlarrClientSendToDownloadClient:
 
     @patch("httpx.post")
     def test_send_to_download_client_http_error(self, mock_post, client):
+        mock_request = httpx.Request("POST", "http://test.com")
         mock_response = httpx.Response(500, text="Internal Server Error")
         mock_post.side_effect = httpx.HTTPStatusError(
-            "Error", request=None, response=mock_response
+            "Error", request=mock_request, response=mock_response
         )
 
         with pytest.raises(ProwlarrClientError, match="HTTP error 500"):
@@ -527,4 +543,3 @@ class TestSearchResult:
         result = SearchResult.from_dict(data)
 
         assert result.publish_date is None
-

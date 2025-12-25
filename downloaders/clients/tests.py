@@ -84,7 +84,7 @@ class TestSABnzbdClientTestConnection:
     def test_test_connection_success(self, mock_get, client):
         mock_response = httpx.Response(200, json={"version": "4.0.0", "status": True})
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         result = client.test_connection()
@@ -98,8 +98,10 @@ class TestSABnzbdClientTestConnection:
 
     @patch("httpx.get")
     def test_test_connection_failure(self, mock_get, client):
+        mock_request = httpx.Request("GET", "http://test.com")
+        mock_response = httpx.Response(500, text="Error")
         mock_get.side_effect = httpx.HTTPStatusError(
-            "Error", request=None, response=None
+            "Error", request=mock_request, response=mock_response
         )
 
         result = client.test_connection()
@@ -130,7 +132,7 @@ class TestSABnzbdClientGetQueue:
             },
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         items = client.get_queue()
@@ -150,7 +152,7 @@ class TestSABnzbdClientGetQueue:
             200, json={"queue": {"slots": []}, "status": True}
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         items = client.get_queue()
@@ -163,7 +165,7 @@ class TestSABnzbdClientGetQueue:
             200, json={"status": False, "error": "Queue error"}
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         with pytest.raises(SABnzbdClientError, match="SABnzbd API error"):
@@ -194,7 +196,7 @@ class TestSABnzbdClientGetHistory:
             },
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         items = client.get_history()
@@ -215,7 +217,7 @@ class TestSABnzbdClientDeleteJob:
             200, json={"status": True, "nzo_ids": ["SABnzbd_nzo_abc123"]}
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         result = client.delete_job("SABnzbd_nzo_abc123")
@@ -231,7 +233,7 @@ class TestSABnzbdClientDeleteJob:
             200, json={"status": False, "error": "Job not found"}
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         result = client.delete_job("invalid-id")
@@ -270,7 +272,7 @@ class TestSABnzbdClientGetJobStatus:
             },
         )
         mock_response._request = None
-        mock_response.raise_for_status = lambda: None
+        mock_response.raise_for_status = lambda: None  # type: ignore[assignment]
         mock_get.return_value = mock_response
 
         status = client.get_job_status("SABnzbd_nzo_abc123")
@@ -286,7 +288,7 @@ class TestSABnzbdClientGetJobStatus:
             200, json={"queue": {"slots": []}, "status": True}
         )
         queue_response._request = None
-        queue_response.raise_for_status = lambda: None
+        queue_response.raise_for_status = lambda: None  # type: ignore[assignment]
 
         history_response = httpx.Response(
             200,
@@ -309,7 +311,7 @@ class TestSABnzbdClientGetJobStatus:
             },
         )
         history_response._request = None
-        history_response.raise_for_status = lambda: None
+        history_response.raise_for_status = lambda: None  # type: ignore[assignment]
 
         mock_get.side_effect = [queue_response, history_response]
 
@@ -327,13 +329,13 @@ class TestSABnzbdClientGetJobStatus:
             200, json={"queue": {"slots": []}, "status": True}
         )
         queue_response._request = None
-        queue_response.raise_for_status = lambda: None
+        queue_response.raise_for_status = lambda: None  # type: ignore[assignment]
 
         history_response = httpx.Response(
             200, json={"history": {"slots": []}, "status": True}
         )
         history_response._request = None
-        history_response.raise_for_status = lambda: None
+        history_response.raise_for_status = lambda: None  # type: ignore[assignment]
 
         mock_get.side_effect = [queue_response, history_response]
 
