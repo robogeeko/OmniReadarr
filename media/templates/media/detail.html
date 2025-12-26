@@ -164,6 +164,7 @@
                     <td style="padding: 10px;">{{ attempt.attempted_at|date:"M j, Y g:i A" }}</td>
                     <td style="padding: 10px;">
                         <button class="convert-epub-btn button" data-attempt-id="{{ attempt.id }}" style="margin-right: 5px; background-color: #28a745; color: white; border: 1px solid #28a745;">Convert to EPUB</button>
+                        <button class="organize-library-btn button" data-attempt-id="{{ attempt.id }}" style="margin-right: 5px; background-color: #007bff; color: white; border: 1px solid #007bff;">Organize to Library</button>
                         {% if attempt.status == "failed" %}
                             <button class="blacklist-btn button" data-attempt-id="{{ attempt.id }}" style="margin-right: 5px;">Blacklist</button>
                         {% endif %}
@@ -555,6 +556,42 @@ async function convertToEpub(attemptId, btn) {
         }
         
         alert(data.message || "Successfully converted to EPUB!");
+        window.location.reload();
+    } catch (error) {
+        alert(`Error: ${error.message}`);
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}
+
+document.querySelectorAll(".organize-library-btn").forEach(btn => {
+    btn.addEventListener("click", async function() {
+        const attemptId = this.dataset.attemptId;
+        await organizeToLibrary(attemptId, this);
+    });
+});
+
+async function organizeToLibrary(attemptId, btn) {
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = "Organizing...";
+    
+    try {
+        const response = await fetch(`/api/processing/organize/${attemptId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || "Organization failed");
+        }
+        
+        alert(data.message || "Successfully organized to library!");
         window.location.reload();
     } catch (error) {
         alert(`Error: ${error.message}`);

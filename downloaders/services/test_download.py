@@ -76,10 +76,6 @@ class TestDownloadServiceInitiateDownload:
     def test_initiate_download_success(
         self, download_service, book, search_result, download_client_config
     ):
-        download_service.prowlarr_client.get_download_url.return_value = (
-            "https://nzbgeek.info/api?t=get&id=123&apikey=abc"
-        )
-
         mock_sabnzbd_client = MagicMock()
         mock_sabnzbd_client.add_download.return_value = {
             "status": True,
@@ -100,12 +96,11 @@ class TestDownloadServiceInitiateDownload:
         book.refresh_from_db()
         assert book.status == MediaStatus.DOWNLOADING
 
-        download_service.prowlarr_client.get_download_url.assert_called_once_with(
-            indexer_id=1, guid="test-guid-123"
-        )
-        mock_sabnzbd_client.add_download.assert_called_once_with(
-            url="https://nzbgeek.info/api?t=get&id=123&apikey=abc", category="books"
-        )
+        download_service.prowlarr_client.get_download_url.assert_not_called()
+        mock_sabnzbd_client.add_download.assert_called_once()
+        call_args = mock_sabnzbd_client.add_download.call_args
+        assert call_args[1]["url"] == "https://example.com/file.nzb"
+        assert call_args[1]["category"] == "books"
 
     def test_initiate_download_with_active_download(
         self, download_service, book, search_result, download_client_config
