@@ -132,15 +132,21 @@ class DownloadService:
             raise DownloadServiceError(f"Failed to initiate download: {str(e)}")
 
     def _resolve_download_url(self, result: SearchResult) -> str:
-        if result.download_url.startswith(
-            ("http://", "https://")
-        ) and not result.download_url.startswith(
-            ("http://localhost", "https://localhost")
-        ):
+        download_url = result.download_url
+
+        if download_url.startswith(("http://localhost", "https://localhost")):
+            download_url = download_url.replace("localhost", "prowlarr", 1)
             logger.info(
-                f"Using download URL directly from search result: {result.download_url}"
+                f"Replaced localhost with prowlarr in download URL: {result.download_url} -> {download_url}"
             )
-            return result.download_url
+
+        if download_url.startswith(
+            ("http://", "https://")
+        ) and not download_url.startswith(("http://localhost", "https://localhost")):
+            logger.info(
+                f"Using download URL directly from search result: {download_url}"
+            )
+            return download_url
 
         if result.guid.startswith(("http://", "https://")):
             guid_url = result.guid
