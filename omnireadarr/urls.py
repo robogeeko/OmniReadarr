@@ -25,6 +25,7 @@ urlpatterns = [
     path("", include("search.urls")),
     path("", include("media.urls")),
     path("", include("downloaders.urls")),
+    path("", include("processing.urls")),
 ]
 
 if settings.DEBUG:

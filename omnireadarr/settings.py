@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "search",
     "indexers",
     "downloaders",
+    "processing",
 ]
 
 MIDDLEWARE = [
@@ -147,6 +148,11 @@ LOGGING = {
             "propagate": False,
         },
         "indexers.prowlarr.client": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "processing": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,

@@ -84,6 +84,7 @@ class Media(BaseModel):
 
     provider = models.CharField(max_length=50, blank=True)
     external_id = models.CharField(max_length=500, blank=True)
+    library_path = models.CharField(max_length=500, blank=True)
 
     class Meta:
         abstract = True
