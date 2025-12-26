@@ -16,4 +16,3 @@ urlpatterns = [
         name="organize_to_library",
     ),
 ]
-

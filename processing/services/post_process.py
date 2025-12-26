@@ -10,7 +10,11 @@ from downloaders.models import DownloadAttempt
 from processing.utils.cover_downloader import CoverDownloadError, download_cover
 from processing.utils.ebook_converter import EbookConverterError, convert_to_epub
 from processing.utils.file_discovery import FileDiscoveryError, find_downloaded_file
-from processing.utils.file_organizer import FileOrganizerError, organize_to_library
+from processing.utils.file_organizer import (
+    FileOrganizerError,
+    organize_directory_to_library,
+    organize_to_library,
+)
 from processing.utils.metadata_generator import generate_opf
 
 logger = logging.getLogger(__name__)
@@ -126,12 +130,20 @@ def organize_to_library_for_attempt(attempt_id: UUID) -> dict[str, str | bool]:
     author = media.authors[0] if media.authors else "Unknown Author"
 
     try:
-        library_file_path = organize_to_library(
-            source_file_path=file_to_organize,
-            library_base_path=config.library_base_path,
-            author=author,
-            book_title=media.title,
-        )
+        if os.path.isdir(file_to_organize):
+            library_file_path = organize_directory_to_library(
+                source_dir_path=file_to_organize,
+                library_base_path=config.library_base_path,
+                author=author,
+                book_title=media.title,
+            )
+        else:
+            library_file_path = organize_to_library(
+                source_file_path=file_to_organize,
+                library_base_path=config.library_base_path,
+                author=author,
+                book_title=media.title,
+            )
         logger.info(f"File organized to library: {library_file_path}")
     except FileOrganizerError as e:
         return {"success": False, "error": str(e)}

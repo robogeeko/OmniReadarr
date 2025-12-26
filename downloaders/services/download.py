@@ -170,9 +170,7 @@ class DownloadService:
             actual_download_url = self.prowlarr_client.get_download_url(
                 indexer_id=result.indexer_id, guid=result.guid
             )
-            logger.info(
-                f"Got actual download URL from Prowlarr: {actual_download_url}"
-            )
+            logger.info(f"Got actual download URL from Prowlarr: {actual_download_url}")
             return actual_download_url
         except Exception as e:
             logger.warning(
