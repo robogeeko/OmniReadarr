@@ -39,6 +39,8 @@ services:
              gunicorn omnireadarr.wsgi:application --bind 0.0.0.0:8000 --workers 4 --reload"
     volumes:
       - .:/app
+      - /Users/robhuang/storyteller-test/downloads/complete:/downloads/complete
+      - /Users/robhuang/storyteller-test/books:/library
     ports:
       - "8000:8000"
     environment:
@@ -46,6 +48,9 @@ services:
       - RABBITMQ_URL=amqp://omnireadarr:omnireadarr_dev@rabbitmq:5672/%2F
       - DEBUG=True
       - SECRET_KEY=dev-secret-key-change-in-production
+    networks:
+      - default
+      - media
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,16 +63,26 @@ services:
       dockerfile: Dockerfile.worker
     volumes:
       - .:/app
+      - /Users/robhuang/storyteller-test/downloads/complete:/downloads/complete
+      - /Users/robhuang/storyteller-test/books:/library
     environment:
       - DATABASE_URL=postgresql://omnireadarr:omnireadarr_dev@postgres:5432/omnireadarr
       - RABBITMQ_URL=amqp://omnireadarr:omnireadarr_dev@rabbitmq:5672/%2F
       - DEBUG=True
       - SECRET_KEY=dev-secret-key-change-in-production
+    networks:
+      - default
+      - media
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
+networks:
+  media:
+    external: true
+    name: storyteller-test_media
 
 volumes:
   postgres_data:

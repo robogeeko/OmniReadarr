@@ -3,7 +3,13 @@ FROM python:3.12-slim
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
+    wget \
+    xz-utils \
     && rm -rf /var/lib/apt/lists/*
+
+RUN wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sh /dev/stdin install_dir=/usr/local \
+    && rm -rf /tmp/calibre-installer-cache \
+    && ebook-convert --version
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
