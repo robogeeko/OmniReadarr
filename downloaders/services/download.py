@@ -231,6 +231,9 @@ class DownloadService:
         if not attempt.download_client:
             return attempt
 
+        if not attempt.download_client_download_id:
+            return attempt
+
         try:
             sabnzbd_client = self.sabnzbd_client_factory(attempt.download_client)
             job_status = sabnzbd_client.get_job_status(
@@ -253,6 +256,8 @@ class DownloadService:
             if job_status.status == "Completed":
                 if attempt.status != DownloadAttemptStatus.DOWNLOADED:
                     attempt.status = DownloadAttemptStatus.DOWNLOADED
+                    attempt.error_type = ""
+                    attempt.error_reason = ""
                     if job_status.path:
                         attempt.raw_file_path = job_status.path
                     attempt.save()
@@ -265,6 +270,8 @@ class DownloadService:
             elif job_status.status in ["Downloading", "Queued", "Paused"]:
                 if attempt.status != DownloadAttemptStatus.DOWNLOADING:
                     attempt.status = DownloadAttemptStatus.DOWNLOADING
+                    attempt.error_type = ""
+                    attempt.error_reason = ""
                     attempt.save()
 
                     media = attempt.media

@@ -4,7 +4,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 
-from downloaders.models import DownloadAttempt
+from downloaders.models import DownloadAttempt, DownloadAttemptStatus
+from downloaders.services.download import DownloadService
 from media.models import Audiobook, Book
 
 
@@ -40,6 +41,27 @@ def media_detail_view(request, media_id: str, media_type: str):
     download_attempts = DownloadAttempt.objects.filter(
         content_type=content_type, object_id=media.id
     ).order_by("-attempted_at")
+
+    download_service = DownloadService()
+    active_attempts = download_attempts.filter(
+        status__in=[
+            DownloadAttemptStatus.DOWNLOADING,
+            DownloadAttemptStatus.SENT,
+            DownloadAttemptStatus.FAILED,
+        ]
+    )
+
+    for attempt in active_attempts:
+        try:
+            download_service.get_download_status(attempt.id)
+        except Exception:
+            pass
+
+    download_attempts = DownloadAttempt.objects.filter(
+        content_type=content_type, object_id=media.id
+    ).order_by("-attempted_at")
+
+    media.refresh_from_db()
 
     context = {
         "media": media,

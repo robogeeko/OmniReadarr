@@ -89,8 +89,9 @@ class SABnzbdClient:
 
         return items
 
-    def get_history(self) -> list[HistoryItem]:
-        data = self._make_request("history")
+    def get_history(self, start: int = 0, limit: int = 100) -> list[HistoryItem]:
+        params = {"start": str(start), "limit": str(limit)}
+        data = self._make_request("history", params)
         history_data = data.get("history", {})
         slots = history_data.get("slots", [])
 
@@ -118,7 +119,20 @@ class SABnzbdClient:
             if item.nzo_id == nzo_id:
                 return JobStatus.from_queue_item(item)
 
-        history_items = self.get_history()
+        history_items = []
+        start = 0
+        limit = 100
+        while True:
+            batch = self.get_history(start=start, limit=limit)
+            if not batch:
+                break
+            history_items.extend(batch)
+            if len(batch) < limit:
+                break
+            start += limit
+            if start > 1000:
+                break
+
         for item in history_items:
             if item.nzo_id == nzo_id:
                 return JobStatus.from_history_item(item)

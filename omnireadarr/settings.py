@@ -157,5 +157,10 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "downloaders.clients.sabnzbd": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }

@@ -39,11 +39,22 @@ class HistoryItem:
 
     @classmethod
     def from_dict(cls, data: dict) -> HistoryItem:
+        size_bytes = data.get("bytes", 0)
+        if isinstance(size_bytes, str):
+            try:
+                size_bytes = float(size_bytes)
+            except ValueError:
+                size_bytes = 0
+        elif not isinstance(size_bytes, (int, float)):
+            size_bytes = 0
+
+        size_mb = size_bytes / (1024 * 1024) if size_bytes else 0.0
+
         return cls(
             nzo_id=data.get("nzo_id", ""),
             name=data.get("name", ""),
             status=data.get("status", ""),
-            size=float(data.get("size", 0)),
+            size=size_mb,
             category=data.get("category", ""),
             storage=data.get("storage", ""),
             path=data.get("path", ""),

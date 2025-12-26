@@ -184,7 +184,8 @@ class TestSABnzbdClientGetHistory:
                             "nzo_id": "SABnzbd_nzo_xyz789",
                             "name": "Completed Book.nzb",
                             "status": "Completed",
-                            "size": "250.5",
+                            "size": "250.5 MB",
+                            "bytes": 262144000,
                             "category": "books",
                             "storage": "/downloads/books",
                             "path": "/downloads/books/Completed Book",
@@ -205,7 +206,7 @@ class TestSABnzbdClientGetHistory:
         assert items[0].nzo_id == "SABnzbd_nzo_xyz789"
         assert items[0].name == "Completed Book.nzb"
         assert items[0].status == "Completed"
-        assert items[0].size == 250.5
+        assert abs(items[0].size - 250.0) < 0.1
         assert items[0].category == "books"
         assert items[0].path == "/downloads/books/Completed Book"
 
@@ -373,7 +374,8 @@ class TestHistoryItem:
             "nzo_id": "SABnzbd_nzo_xyz789",
             "name": "Completed Book.nzb",
             "status": "Completed",
-            "size": "250.5",
+            "size": "250.5 MB",
+            "bytes": 262144000,
             "category": "books",
             "storage": "/downloads/books",
             "path": "/downloads/books/Completed Book",
@@ -385,7 +387,7 @@ class TestHistoryItem:
         assert item.nzo_id == "SABnzbd_nzo_xyz789"
         assert item.name == "Completed Book.nzb"
         assert item.status == "Completed"
-        assert item.size == 250.5
+        assert abs(item.size - 250.0) < 0.1
         assert item.path == "/downloads/books/Completed Book"
 
 
