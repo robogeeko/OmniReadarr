@@ -32,6 +32,9 @@ migrate:
 createsuperuser:
 	uv run python manage.py createsuperuser
 
+createsuperuser-docker:
+	docker compose exec web python manage.py createsuperuser
+
 collectstatic:
 	uv run python manage.py collectstatic --noinput
 
