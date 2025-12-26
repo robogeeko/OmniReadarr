@@ -136,31 +136,8 @@ LOGGING = {
             "formatter": "verbose",
         },
     },
-    "loggers": {
-        "downloaders.services.search": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "downloaders.services.download": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "indexers.prowlarr.client": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "processing": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "downloaders.clients.sabnzbd": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
     },
 }
