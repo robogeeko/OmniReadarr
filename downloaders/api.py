@@ -10,14 +10,12 @@ from django.views.decorators.http import require_http_methods
 from downloaders.models import BlacklistReason, DownloadAttempt
 from downloaders.services.download import DownloadService, DownloadServiceError
 from downloaders.services.search import SearchService, SearchServiceError
-from media.models import Audiobook, Book
+from media.utils import get_media_by_id
 
 
 @require_http_methods(["POST"])
 def search_for_media(request, media_id: UUID):
-    book = Book.objects.filter(id=media_id).first()
-    audiobook = Audiobook.objects.filter(id=media_id).first()
-    media = book or audiobook
+    media = get_media_by_id(media_id)
 
     if not media:
         return JsonResponse({"error": "Media not found"}, status=404)
@@ -75,9 +73,7 @@ def initiate_download(request):
     except ValueError:
         return JsonResponse({"error": "Invalid media_id format"}, status=400)
 
-    book = Book.objects.filter(id=media_uuid).first()
-    audiobook = Audiobook.objects.filter(id=media_uuid).first()
-    media = book or audiobook
+    media = get_media_by_id(media_uuid)
 
     if not media:
         return JsonResponse({"error": "Media not found"}, status=404)
@@ -161,9 +157,7 @@ def initiate_download(request):
 
 @require_http_methods(["GET"])
 def get_download_attempts(request, media_id: UUID):
-    book = Book.objects.filter(id=media_id).first()
-    audiobook = Audiobook.objects.filter(id=media_id).first()
-    media = book or audiobook
+    media = get_media_by_id(media_id)
 
     if not media:
         return JsonResponse({"error": "Media not found"}, status=404)

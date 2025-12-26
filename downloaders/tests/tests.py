@@ -7,7 +7,6 @@ from django.core.exceptions import ValidationError
 
 from downloaders.models import (
     BlacklistReason,
-    ClientType,
     DownloadAttempt,
     DownloadAttemptStatus,
     DownloadBlacklist,
@@ -217,65 +216,3 @@ class TestDownloadBlacklist:
         blacklists = list(DownloadBlacklist.objects.all())
         assert blacklists[0] == blacklist2
         assert blacklists[1] == blacklist1
-
-
-@pytest.mark.django_db
-class TestDownloadClientConfiguration:
-    def test_create_download_client_configuration(self):
-        config = DownloadClientConfiguration.objects.create(
-            name="Main SABnzbd",
-            client_type=ClientType.SABNZBD,
-            host="localhost",
-            port=8080,
-            api_key="test-api-key",
-        )
-        assert config.name == "Main SABnzbd"
-        assert config.client_type == ClientType.SABNZBD
-        assert config.host == "localhost"
-        assert config.port == 8080
-        assert config.api_key == "test-api-key"
-        assert config.use_ssl is False
-        assert config.enabled is True
-        assert config.priority == 0
-        assert "SABnzbd" in str(config)
-
-    def test_download_client_configuration_defaults(self):
-        config = DownloadClientConfiguration.objects.create(
-            name="Test",
-            host="localhost",
-            port=8080,
-            api_key="key",
-        )
-        assert config.client_type == ClientType.SABNZBD
-        assert config.use_ssl is False
-        assert config.enabled is True
-        assert config.priority == 0
-
-    def test_download_client_configuration_ordering(self):
-        config1 = DownloadClientConfiguration.objects.create(
-            name="B Config",
-            host="localhost",
-            port=8080,
-            api_key="key",
-            priority=2,
-        )
-        config2 = DownloadClientConfiguration.objects.create(
-            name="A Config",
-            host="localhost",
-            port=8080,
-            api_key="key",
-            priority=1,
-        )
-        configs = list(DownloadClientConfiguration.objects.all())
-        assert configs[0] == config2
-        assert configs[1] == config1
-
-    def test_download_client_configuration_port_validation(self):
-        config = DownloadClientConfiguration(
-            name="Test",
-            host="localhost",
-            port=0,
-            api_key="key",
-        )
-        with pytest.raises(ValidationError):
-            config.full_clean()

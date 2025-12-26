@@ -191,35 +191,6 @@ class DownloadService:
                     f"Cannot determine download URL. download_url={result.download_url}, guid={result.guid}, error={str(e)}"
                 )
 
-    def _is_direct_indexer_url(self, url: str) -> bool:
-        """Check if URL is a direct indexer URL (not a Prowlarr proxy)."""
-        if not url.startswith(("http://", "https://")):
-            return False
-
-        # Check if it's actually an indexer URL (contains common indexer domains or patterns)
-        indexer_patterns = [
-            "nzbgeek.info",
-            "nzbgeek.com",
-            "api.nzb",
-            "/api?t=get",
-            "&apikey=",
-        ]
-
-        if any(pattern in url for pattern in indexer_patterns):
-            return True
-
-        # Prowlarr proxy URLs contain the Prowlarr host
-        prowlarr_host = self.prowlarr_client.config.host
-        if prowlarr_host in url and "/api/v1" in url:
-            return False
-
-        # localhost URLs with Prowlarr's port are proxies
-        if ("localhost" in url or "127.0.0.1" in url) and ":9696" in url:
-            return False
-
-        # If we can't determine, assume it's direct
-        return True
-
     def get_download_status(self, attempt_id: UUID) -> DownloadAttempt:
         try:
             attempt = DownloadAttempt.objects.select_related("download_client").get(

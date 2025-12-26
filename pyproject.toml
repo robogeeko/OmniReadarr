@@ -28,4 +28,4 @@ DJANGO_SETTINGS_MODULE = "omnireadarr.settings"
 python_files = ["test_*.py", "*_test.py", "tests.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-testpaths = ["tests", "indexers", "downloaders", "processing"]
+testpaths = ["tests", "core/tests", "downloaders/tests", "downloads/tests", "indexers/tests", "media/tests", "processing/tests", "search/tests"]
