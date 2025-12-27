@@ -446,6 +446,7 @@ function displaySearchResults(results) {
                 <tr style="background-color: #f5f5f5;">
                     <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Release Title</th>
                     <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Indexer</th>
+                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Type</th>
                     <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Size</th>
                     <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Seeders</th>
                     <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Actions</th>
@@ -456,11 +457,14 @@ function displaySearchResults(results) {
     
     results.forEach(result => {
         const sizeMB = result.size ? (result.size / 1024 / 1024).toFixed(2) + " MB" : "-";
+        const protocol = result.protocol || "unknown";
+        const protocolDisplay = protocol.charAt(0).toUpperCase() + protocol.slice(1);
         const resultData = JSON.stringify(result).replace(/"/g, '&quot;');
         html += `
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 10px;">${escapeHtml(result.title)}</td>
                 <td style="padding: 10px;">${escapeHtml(result.indexer)}</td>
+                <td style="padding: 10px;">${escapeHtml(protocolDisplay)}</td>
                 <td style="padding: 10px;">${sizeMB}</td>
                 <td style="padding: 10px;">${result.seeders || "-"}</td>
                 <td style="padding: 10px;">
